@@ -6,5 +6,6 @@ authors = ["ZhengYu, Xu <zen-xu@outlook.com>"]
 categories = ["command-line-utilities", "jinja2", "template"]
 description = "A command-line utility that creates project layout."
 repository = "https://github.com/petridish-dev/petridish"
+license = "MIT"
 
 [dependencies]
