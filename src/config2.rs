@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{de::Visitor, Deserialize};
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -21,12 +23,32 @@ pub enum PromptType {
     String,
 }
 
+impl Display for PromptType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PromptType::Number => write!(f, "number"),
+            PromptType::Boolean => write!(f, "boolean"),
+            PromptType::String => write!(f, "string"),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Deserialize, Clone)]
 #[serde(untagged)]
 pub enum PromptValue {
     Number(f32),
     Boolean(bool),
     String(String),
+}
+
+impl PromptValue {
+    fn get_type(&self) -> PromptType {
+        match self {
+            PromptValue::Number(_) => PromptType::Number,
+            PromptValue::Boolean(_) => PromptType::Boolean,
+            PromptValue::String(_) => PromptType::String,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -111,7 +133,7 @@ impl<'de> Deserialize<'de> for PromptItem {
                 let mut choices: Option<Vec<PromptValue>> = None;
                 let mut multi: Option<bool> = None;
 
-                #[derive(Deserialize, Debug)]
+                #[derive(Deserialize, Debug, Clone)]
                 #[serde(untagged)]
                 enum DefaultPrompt {
                     Single(PromptValue),
@@ -156,9 +178,36 @@ impl<'de> Deserialize<'de> for PromptItem {
                 let name = name.ok_or_else(|| serde::de::Error::missing_field("name"))?;
                 let mut single_default: Option<PromptValue> = None;
                 let mut multi_default: Option<Vec<PromptValue>> = None;
-                match default {
-                    Some(DefaultPrompt::Multi(v)) => multi_default = Some(v),
-                    Some(DefaultPrompt::Single(v)) => single_default = Some(v),
+                match &default {
+                    Some(DefaultPrompt::Multi(v)) => multi_default = Some(v.clone()),
+                    Some(DefaultPrompt::Single(v)) => single_default = Some(v.clone()),
+                    _ => (),
+                }
+
+                match (&default, &type_, &multi) {
+                    (Some(DefaultPrompt::Single(v)), Some(type_), _) => {
+                        let value_type = v.get_type();
+                        if value_type != *type_ {
+                            return Err(serde::de::Error::custom(format!(
+                                "type specified `{}` but default is `{}`",
+                                type_, value_type
+                            )));
+                        }
+                    }
+                    (Some(DefaultPrompt::Multi(vs)), Some(type_), _) => {
+                        let value_type = vs.first().unwrap().get_type();
+                        if value_type != *type_ {
+                            return Err(serde::de::Error::custom(format!(
+                                "type specified `{}` but default is `{}`",
+                                type_, value_type
+                            )));
+                        }
+                    }
+                    (Some(DefaultPrompt::Multi(_)), None, None | Some(false)) => {
+                        return Err(serde::de::Error::custom(
+                            "default only can specified array in multi choices",
+                        ));
+                    }
                     _ => (),
                 }
 
@@ -199,18 +248,107 @@ impl<'de> Deserialize<'de> for PromptItem {
 
 #[cfg(test)]
 mod tests {
+    use std::error::Error;
+
     use super::*;
     use serde_yaml;
 
     #[test]
-    fn it_deserialize_prompt_item() {
+    fn it_deserialize_only_with_name() {
         let yaml = r#"
 name: hello
-default: [1]
-choices: [2, 1]
-multi: true
 "#;
-        let result = serde_yaml::from_str::<PromptItem>(yaml);
-        println!("{:?}", result);
+        assert_eq!(
+            serde_yaml::from_str::<PromptItem>(yaml).unwrap(),
+            PromptItem {
+                name: "hello".to_string(),
+                type_: None,
+                kind: PromptKind::Normal { default: None },
+            }
+        );
+    }
+
+    #[test]
+    fn it_deserialize_missing_name() {
+        let yaml = r#"
+default: [1]
+"#;
+        match serde_yaml::from_str::<PromptItem>(yaml) {
+            Ok(_) => unreachable!(),
+            Err(msg) => {
+                assert_eq!(msg.description(), "missing field `name`");
+            }
+        }
+    }
+
+    #[test]
+    fn it_deserialize_default_number() {
+        let yaml = r#"
+name: "god"
+default: 1
+"#;
+        assert_eq!(
+            serde_yaml::from_str::<PromptItem>(yaml).unwrap(),
+            PromptItem {
+                name: "god".to_string(),
+                type_: None,
+                kind: PromptKind::Normal {
+                    default: Some(PromptValue::Number(1.0))
+                },
+            }
+        );
+    }
+
+    #[test]
+    fn it_deserialize_default_string() {
+        let yaml = r#"
+name: "god"
+default: "12"
+"#;
+        assert_eq!(
+            serde_yaml::from_str::<PromptItem>(yaml).unwrap(),
+            PromptItem {
+                name: "god".to_string(),
+                type_: None,
+                kind: PromptKind::Normal {
+                    default: Some(PromptValue::String("12".to_string()))
+                },
+            }
+        );
+    }
+
+    #[test]
+    fn it_deserialize_default_boolean() {
+        let yaml = r#"
+name: "god"
+default: true
+"#;
+        assert_eq!(
+            serde_yaml::from_str::<PromptItem>(yaml).unwrap(),
+            PromptItem {
+                name: "god".to_string(),
+                type_: None,
+                kind: PromptKind::Normal {
+                    default: Some(PromptValue::Boolean(true))
+                },
+            }
+        );
+    }
+
+    #[test]
+    fn it_deserialize_default_array() {
+        let yaml = r#"
+name: "god"
+default: [1, 2, 3]
+"#;
+        match serde_yaml::from_str::<PromptItem>(yaml) {
+            Ok(_) => unreachable!(),
+            Err(msg) => {
+                assert_eq!(
+                    msg.description(),
+                    "default only can specified array in multi choices"
+                );
+            }
+        }
     }
 }
