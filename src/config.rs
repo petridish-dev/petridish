@@ -14,8 +14,6 @@ pub struct PromptItem {
     default: Option<String>,
     #[serde(default)]
     choices: Option<Vec<String>>,
-    #[serde(default)]
-    multi: Option<bool>,
 }
 
 #[cfg(test)]
@@ -33,7 +31,6 @@ prompts:
 - name: name
   default: Peter
   choices: [Peter, Alice, Joe]
-  multi: true
 "#;
         assert_eq!(
             serde_yaml::from_str::<PromptConfig>(config).unwrap(),
@@ -46,7 +43,6 @@ prompts:
                         "Alice".to_string(),
                         "Joe".to_string()
                     ]),
-                    multi: Some(true),
                 }]
             }
         )
@@ -59,7 +55,6 @@ prompts:
 prompts:
 - default: Peter
   choices: [Peter, Alice, Joe]
-  multi: true
 "#;
         match serde_yaml::from_str::<PromptConfig>(config) {
             Ok(_) => unreachable!(),
@@ -86,7 +81,6 @@ prompts:
                     name: "name".to_string(),
                     default: None,
                     choices: None,
-                    multi: None,
                 }]
             }
         )
