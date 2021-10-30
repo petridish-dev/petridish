@@ -1,3 +1,4 @@
+use regex::{self, Regex};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -14,6 +15,47 @@ pub struct PromptItem {
     default: Option<String>,
     #[serde(default)]
     choices: Option<Vec<String>>,
+}
+
+impl PromptConfig {
+    pub fn from_yaml(s: &str) -> Result<PromptConfig, String> {
+        let config = serde_yaml::from_str::<PromptConfig>(s).map_err(|e| e.to_string())?;
+        for (idx, prompt_item) in config.prompts.iter().enumerate() {
+            prompt_item
+                .validate()
+                .map_err(|e| format!("prompts[{}]: {}", idx, e))?
+        }
+
+        Ok(config)
+    }
+}
+
+impl PromptItem {
+    fn validate(&self) -> Result<(), String> {
+        let regex_expression = r"^[a-zA-Z_$][a-zA-Z_$0-9]*$";
+        if !Regex::new(regex_expression).unwrap().is_match(&self.name) {
+            Err(format!("name must match `{}`", regex_expression))?
+        }
+
+        match (&self.default, &self.choices) {
+            (Some(default), Some(choices)) => {
+                if !choices.contains(default) {
+                    Err(format!(
+                        "invalid default, `{}` is not one of {}",
+                        default,
+                        choices
+                            .iter()
+                            .map(|s| format!("`{}`", s))
+                            .collect::<Vec<String>>()
+                            .join(", ")
+                    ))?
+                }
+            }
+            _ => (),
+        }
+
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -84,5 +126,45 @@ prompts:
                 }]
             }
         )
+    }
+
+    #[test]
+    fn it_validate_name() {
+        let config = r#"
+---
+prompts:
+- name: 1_name
+"#;
+
+        match PromptConfig::from_yaml(config) {
+            Ok(_) => unreachable!(),
+            Err(err) => {
+                assert_eq!(
+                    err.to_string(),
+                    "prompts[0]: name must match `^[a-zA-Z_$][a-zA-Z_$0-9]*$`"
+                )
+            }
+        }
+    }
+
+    #[test]
+    fn it_validate_choices_with_default() {
+        let config = r#"
+---
+prompts:
+- name: name
+  choices: [a, b]
+  default: c
+"#;
+
+        match PromptConfig::from_yaml(config) {
+            Ok(_) => unreachable!(),
+            Err(err) => {
+                assert_eq!(
+                    err.to_string(),
+                    "prompts[0]: invalid default, `c` is not one of `a`, `b`"
+                )
+            }
+        }
     }
 }
