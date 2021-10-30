@@ -12,6 +12,8 @@ pub struct PromptConfig {
 pub struct PromptItem {
     name: String,
     #[serde(default)]
+    message: Option<String>,
+    #[serde(default)]
     default: Option<String>,
     #[serde(default)]
     choices: Option<Vec<String>>,
@@ -71,6 +73,7 @@ mod tests {
 ---
 prompts:
 - name: name
+  message: What's your name
   default: Peter
   choices: [Peter, Alice, Joe]
 "#;
@@ -79,6 +82,7 @@ prompts:
             PromptConfig {
                 prompts: vec![PromptItem {
                     name: "name".to_string(),
+                    message: Some("What's your name".to_string()),
                     default: Some("Peter".to_string()),
                     choices: Some(vec![
                         "Peter".to_string(),
@@ -121,6 +125,7 @@ prompts:
             PromptConfig {
                 prompts: vec![PromptItem {
                     name: "name".to_string(),
+                    message: None,
                     default: None,
                     choices: None,
                 }]
