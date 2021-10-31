@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::path::PathBuf;
 use structopt::clap::AppSettings::{ColorAuto, ColoredHelp};
 use structopt::StructOpt;
 
 use clap::{crate_authors, crate_description};
+use dialoguer::{theme::ColorfulTheme, Input, Select};
 use miette::Result;
 use petridish::config::PromptConfig;
 use petridish::source::new_source;
@@ -37,6 +39,41 @@ fn main() -> Result<()> {
     let source = new_source(&app.template)?;
     let config_path = source.get_config()?;
     let config = PromptConfig::from_yaml_path(&config_path)?;
-    println!("{:?}", config);
+    let mut context: HashMap<String, String> = HashMap::new();
+    for prompt in config.prompts {
+        let input: String = {
+            if let Some(choices) = prompt.choices {
+                let default: usize = match prompt.default {
+                    Some(default) => *(&choices.iter().position(|i| i == &default).unwrap()),
+                    None => 0,
+                };
+
+                let selection = Select::with_theme(&ColorfulTheme::default())
+                    .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                    .default(default)
+                    .items(&choices)
+                    .interact()
+                    .unwrap();
+                choices[selection].clone()
+            } else {
+                if let Some(default) = prompt.default {
+                    Input::with_theme(&ColorfulTheme::default())
+                        .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                        .default(default)
+                        .interact_text()
+                        .unwrap()
+                } else {
+                    Input::with_theme(&ColorfulTheme::default())
+                        .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                        .interact_text()
+                        .unwrap()
+                }
+            }
+        };
+
+        context.insert(prompt.name, input);
+    }
+
+    println!("{:?}", context);
     Ok(())
 }
