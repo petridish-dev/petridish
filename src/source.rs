@@ -20,8 +20,8 @@ impl TemplateSource for DirSource {
     }
 }
 
-pub fn new_source(template: &str) -> Option<Box<dyn TemplateSource>> {
-    return Some(Box::new(DirSource {
+pub fn new_source(template: &str) -> Result<Box<dyn TemplateSource>, String> {
+    return Ok(Box::new(DirSource {
         template_dir: PathBuf::from(template),
     }));
 }
