@@ -7,11 +7,26 @@ pub enum SourceError {
     #[error("Template dir '{0}' does not exists")]
     #[diagnostic(code(source::not_exists))]
     DirNotExists(String),
+
+    #[error("Config '{0}/petridish.yaml' does not exists")]
+    #[diagnostic(code(source::config_not_exists))]
+    ConfigNotExists(PathBuf),
 }
 
 pub trait TemplateSource {
     fn check_update(&self, cache_dir: &Path) -> bool;
     fn get_template(&self) -> &Path;
+    fn get_config(&self) -> Result<PathBuf, SourceError> {
+        let template = self.get_template();
+
+        for config_name in ["petridish.yaml", "petridish.yml"] {
+            let config = template.join(config_name);
+            if config.exists() {
+                return Ok(config);
+            }
+        }
+        Err(SourceError::ConfigNotExists(template.to_path_buf()))
+    }
 }
 
 #[derive(PartialEq)]
@@ -46,6 +61,8 @@ pub fn new_source(template: &str) -> Result<Box<dyn TemplateSource>, SourceError
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+
     use tempdir::TempDir;
 
     use super::*;
@@ -64,5 +81,28 @@ mod tests {
     fn it_new_source_failed() {
         let err = new_source("/a/b/c").err().unwrap();
         assert_eq!(format!("{}", err), "Template dir '/a/b/c' does not exists");
+    }
+
+    #[test]
+    fn it_source_config() {
+        let template = TempDir::new("template").unwrap();
+        let template_path = &template.path().as_os_str().to_str().unwrap();
+        let config = &template.path().join("petridish.yaml");
+        fs::write(config.as_os_str().to_str().unwrap(), "").unwrap();
+
+        let source = new_source(template_path).unwrap();
+        assert_eq!(&source.get_config().unwrap(), config);
+    }
+
+    #[test]
+    fn it_source_config_not_exists() {
+        let template = TempDir::new("template").unwrap();
+        let template_path = &template.path().as_os_str().to_str().unwrap();
+        let source = new_source(template_path).unwrap();
+        let err = source.get_config().err().unwrap();
+        assert_eq!(
+            format!("{}", err),
+            format!("Config '{}/petridish.yaml' does not exists", template_path)
+        );
     }
 }
