@@ -1,6 +1,9 @@
+use std::fs;
+
 use miette::Diagnostic;
 use regex::{self, Regex};
 use serde::Deserialize;
+use std::path::Path;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
@@ -10,6 +13,9 @@ pub enum ConfigError {
 
     #[error("prompts[{index}]: {err}")]
     CustomParseError { index: usize, err: String },
+
+    #[error("{0}")]
+    LoadConfigFailed(String),
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -41,6 +47,13 @@ impl PromptConfig {
         }
 
         Ok(config)
+    }
+
+    pub fn from_yaml_path(p: &Path) -> Result<PromptConfig, ConfigError> {
+        let content =
+            fs::read_to_string(p).map_err(|e| ConfigError::LoadConfigFailed(e.to_string()))?;
+
+        Ok(PromptConfig::from_yaml(&content)?)
     }
 }
 
@@ -78,6 +91,7 @@ mod tests {
 
     use super::*;
     use serde_yaml;
+    use tempdir::TempDir;
 
     #[test]
     fn it_deserialize_prompt_config() {
@@ -183,5 +197,29 @@ prompts:
                 )
             }
         }
+    }
+
+    #[test]
+    fn it_deserialize_prompt_config_from_file() {
+        let config = r#"
+---
+prompts:
+- name: name
+"#;
+        let tmp_dir = TempDir::new("tmp").unwrap();
+        let config_path = &tmp_dir.path().join("petridish.yaml");
+        fs::write(config_path, config).unwrap();
+
+        assert_eq!(
+            PromptConfig::from_yaml_path(config_path).unwrap(),
+            PromptConfig {
+                prompts: vec![PromptItem {
+                    name: "name".to_string(),
+                    message: None,
+                    default: None,
+                    choices: None,
+                }]
+            }
+        )
     }
 }
