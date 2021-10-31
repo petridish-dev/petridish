@@ -4,6 +4,8 @@ use structopt::StructOpt;
 
 use clap::{crate_authors, crate_description};
 use miette::Result;
+use petridish::config::PromptConfig;
+use petridish::source::new_source;
 use std::env;
 use std::fmt::Debug;
 
@@ -32,7 +34,9 @@ struct App {
 
 fn main() -> Result<()> {
     let app = App::from_args();
-    println!("{:#?}", app);
-
+    let source = new_source(&app.template)?;
+    let config_path = source.get_config()?;
+    let config = PromptConfig::from_yaml_path(&config_path)?;
+    println!("{:?}", config);
     Ok(())
 }
