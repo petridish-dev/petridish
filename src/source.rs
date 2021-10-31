@@ -4,10 +4,10 @@ use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum SourceError {
-    #[error("Template dir '{0}' does not exists")]
+    #[error("Template dir '{0}' does not exist")]
     DirNotExists(String),
 
-    #[error("Config '{0}/petridish.yaml' does not exists")]
+    #[error("Config '{0}/petridish.yaml' does not exist")]
     ConfigNotExists(PathBuf),
 }
 
