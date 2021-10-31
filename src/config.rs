@@ -1,5 +1,16 @@
+use miette::Diagnostic;
 use regex::{self, Regex};
 use serde::Deserialize;
+use thiserror::Error;
+
+#[derive(Error, Debug, Diagnostic)]
+pub enum ConfigError {
+    #[error("{0}")]
+    ParseError(String),
+
+    #[error("prompts[{index}]: {err}")]
+    CustomParseError { index: usize, err: String },
+}
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -20,12 +31,13 @@ pub struct PromptItem {
 }
 
 impl PromptConfig {
-    pub fn from_yaml(s: &str) -> Result<PromptConfig, String> {
-        let config = serde_yaml::from_str::<PromptConfig>(s).map_err(|e| e.to_string())?;
+    pub fn from_yaml(s: &str) -> Result<PromptConfig, ConfigError> {
+        let config = serde_yaml::from_str::<PromptConfig>(s)
+            .map_err(|e| ConfigError::ParseError(e.to_string()))?;
         for (idx, prompt_item) in config.prompts.iter().enumerate() {
             prompt_item
                 .validate()
-                .map_err(|e| format!("prompts[{}]: {}", idx, e))?
+                .map_err(|e| ConfigError::CustomParseError { index: idx, err: e })?
         }
 
         Ok(config)
