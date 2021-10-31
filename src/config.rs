@@ -27,13 +27,13 @@ pub struct PromptConfig {
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct PromptItem {
-    name: String,
+    pub name: String,
     #[serde(default)]
-    message: Option<String>,
+    pub message: Option<String>,
     #[serde(default)]
-    default: Option<String>,
+    pub default: Option<String>,
     #[serde(default)]
-    choices: Option<Vec<String>>,
+    pub choices: Option<Vec<String>>,
 }
 
 impl PromptConfig {
