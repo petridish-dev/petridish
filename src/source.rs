@@ -5,11 +5,9 @@ use thiserror::Error;
 #[derive(Error, Debug, Diagnostic)]
 pub enum SourceError {
     #[error("Template dir '{0}' does not exists")]
-    #[diagnostic(code(source::not_exists))]
     DirNotExists(String),
 
     #[error("Config '{0}/petridish.yaml' does not exists")]
-    #[diagnostic(code(source::config_not_exists))]
     ConfigNotExists(PathBuf),
 }
 
