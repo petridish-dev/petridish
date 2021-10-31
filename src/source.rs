@@ -11,7 +11,7 @@ pub enum SourceError {
 
 pub trait TemplateSource {
     fn check_update(&self, cache_dir: &Path) -> bool;
-    fn get(&self) -> &Path;
+    fn get_template(&self) -> &Path;
 }
 
 #[derive(PartialEq)]
@@ -35,7 +35,7 @@ impl TemplateSource for DirSource {
         false
     }
 
-    fn get(&self) -> &Path {
+    fn get_template(&self) -> &Path {
         &self.template_dir
     }
 }
@@ -57,7 +57,7 @@ mod tests {
         let source = new_source(template).unwrap();
 
         assert!(!source.check_update(&PathBuf::from("/cache")));
-        assert_eq!(source.get(), &PathBuf::from(template));
+        assert_eq!(source.get_template(), &PathBuf::from(template));
     }
 
     #[test]
