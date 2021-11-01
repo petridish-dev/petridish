@@ -1,15 +1,15 @@
-use std::collections::HashMap;
+use std::env;
+use std::fmt::Debug;
 use std::path::PathBuf;
-use structopt::clap::AppSettings::{ColorAuto, ColoredHelp};
-use structopt::StructOpt;
 
 use clap::{crate_authors, crate_description};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use miette::Result;
 use petridish::config::PromptConfig;
 use petridish::source::new_source;
-use std::env;
-use std::fmt::Debug;
+use structopt::clap::AppSettings::{ColorAuto, ColoredHelp};
+use structopt::StructOpt;
+use tera::{Context, Tera};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name="petridish", author = crate_authors!(), about = crate_description!(), setting(ColorAuto), setting(ColoredHelp))]
@@ -39,7 +39,8 @@ fn main() -> Result<()> {
     let source = new_source(&app.template)?;
     let config_path = source.get_config()?;
     let config = PromptConfig::from_yaml_path(&config_path)?;
-    let mut context: HashMap<String, String> = HashMap::new();
+    let mut context = Context::new();
+    let mut tera = Tera::default();
     for prompt in config.prompts {
         let input: String = {
             if let Some(choices) = prompt.choices {
@@ -57,6 +58,7 @@ fn main() -> Result<()> {
                 choices[selection].clone()
             } else {
                 if let Some(default) = prompt.default {
+                    let default = tera.render_str(&default, &context).unwrap();
                     Input::with_theme(&ColorfulTheme::default())
                         .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
                         .default(default)
@@ -71,7 +73,7 @@ fn main() -> Result<()> {
             }
         };
 
-        context.insert(prompt.name, input);
+        context.insert(prompt.name, &input);
     }
 
     println!("{:?}", context);
