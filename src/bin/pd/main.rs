@@ -6,6 +6,7 @@ use clap::{crate_authors, crate_description};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use miette::Result;
 use petridish::config::PromptConfig;
+use petridish::render::Render;
 use petridish::source::new_source;
 use structopt::clap::AppSettings::{ColorAuto, ColoredHelp};
 use structopt::StructOpt;
@@ -76,6 +77,12 @@ fn main() -> Result<()> {
         context.insert(prompt.name, &input);
     }
 
-    println!("{:?}", context);
+    let render = Render::try_new(
+        source.get_template(),
+        &config.entry_dir,
+        &app.output,
+        context,
+    )?;
+    render.render()?;
     Ok(())
 }
