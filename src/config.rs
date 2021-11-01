@@ -22,6 +22,13 @@ pub enum ConfigError {
 #[serde(deny_unknown_fields)]
 pub struct PromptConfig {
     pub prompts: Vec<PromptItem>,
+
+    #[serde(default = "default_entry_dir")]
+    pub entry_dir: String,
+}
+
+fn default_entry_dir() -> String {
+    "{{ repo_name }}".to_string()
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -115,7 +122,8 @@ prompts:
                         "Alice".to_string(),
                         "Joe".to_string()
                     ]),
-                }]
+                }],
+                entry_dir: "{{ repo_name }}".to_string(),
             }
         )
     }
@@ -154,7 +162,8 @@ prompts:
                     message: None,
                     default: None,
                     choices: None,
-                }]
+                }],
+                entry_dir: "{{ repo_name }}".to_string(),
             }
         )
     }
@@ -218,7 +227,8 @@ prompts:
                     message: None,
                     default: None,
                     choices: None,
-                }]
+                }],
+                entry_dir: "{{ repo_name }}".to_string(),
             }
         )
     }
