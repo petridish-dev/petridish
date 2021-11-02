@@ -42,6 +42,20 @@ fn main() -> Result<()> {
     let config = PromptConfig::from_yaml_path(&config_path)?;
     let mut context = Context::new();
     let mut tera = Tera::default();
+
+    let entry_dir: String = Input::with_theme(&ColorfulTheme::default())
+        .with_prompt("repo dir name?")
+        .interact_text()
+        .unwrap();
+    let entry_dir_var_name = config
+        .entry_dir
+        .strip_prefix("{{")
+        .unwrap()
+        .strip_suffix("}}")
+        .unwrap()
+        .trim();
+    context.insert(entry_dir_var_name, &entry_dir);
+
     for prompt in config.prompts {
         let input: String = {
             if let Some(choices) = prompt.choices {
