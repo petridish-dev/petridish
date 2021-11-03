@@ -56,6 +56,11 @@ pub enum PromptKind {
         choices: Vec<Value>,
         multi: Option<LiteralTrue>,
     },
+    Flag {
+        flag: LiteralTrue,
+        #[serde(default)]
+        default: bool,
+    },
     Normal {
         default: Option<Value>,
     },
@@ -499,6 +504,53 @@ prompts:
 
         assert_eq!(
             PromptConfig::from_yaml_path(config_path).unwrap(),
+            PromptConfig {
+                prompts: vec![PromptItem {
+                    name: "name".to_string(),
+                    message: None,
+                    kind: PromptKind::Normal { default: None },
+                }],
+                entry_dir: "{{ repo_name }}".to_string(),
+            }
+        )
+    }
+
+    #[test]
+    fn it_deserialize_flag_v1() {
+        let config = r#"
+---
+prompts:
+- name: name
+  flag: true
+"#;
+
+        assert_eq!(
+            PromptConfig::from_yaml(config).unwrap(),
+            PromptConfig {
+                prompts: vec![PromptItem {
+                    name: "name".to_string(),
+                    message: None,
+                    kind: PromptKind::Flag {
+                        flag: LiteralTrue {},
+                        default: false
+                    },
+                }],
+                entry_dir: "{{ repo_name }}".to_string(),
+            }
+        )
+    }
+
+    #[test]
+    fn it_deserialize_flag_v2() {
+        let config = r#"
+---
+prompts:
+- name: name
+  flag: false
+"#;
+
+        assert_eq!(
+            PromptConfig::from_yaml(config).unwrap(),
             PromptConfig {
                 prompts: vec![PromptItem {
                     name: "name".to_string(),
