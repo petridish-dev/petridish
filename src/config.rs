@@ -49,12 +49,12 @@ pub enum PromptKind {
     SingleChoice {
         default: Option<Value>,
         choices: Vec<Value>,
-        multi: Option<SingleChoice>,
+        multi: Option<LiteralFalse>,
     },
     MultiChoices {
         default: Option<Vec<Value>>,
         choices: Vec<Value>,
-        multi: Option<MultiChoices>,
+        multi: Option<LiteralTrue>,
     },
     Normal {
         default: Option<Value>,
@@ -88,15 +88,15 @@ impl fmt::Display for Value {
 }
 
 #[derive(PartialEq)]
-pub struct MultiChoices;
+pub struct LiteralTrue;
 
-impl fmt::Debug for MultiChoices {
+impl fmt::Debug for LiteralTrue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "true")
     }
 }
 
-impl<'de> Deserialize<'de> for MultiChoices {
+impl<'de> Deserialize<'de> for LiteralTrue {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -104,7 +104,7 @@ impl<'de> Deserialize<'de> for MultiChoices {
         struct MultiChoicesVisitor;
 
         impl<'de> Visitor<'de> for MultiChoicesVisitor {
-            type Value = MultiChoices;
+            type Value = LiteralTrue;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("bool `true`")
@@ -115,7 +115,7 @@ impl<'de> Deserialize<'de> for MultiChoices {
                 E: serde::de::Error,
             {
                 if v {
-                    Ok(MultiChoices {})
+                    Ok(LiteralTrue {})
                 } else {
                     Err(E::custom("must be bool true"))
                 }
@@ -127,15 +127,15 @@ impl<'de> Deserialize<'de> for MultiChoices {
 }
 
 #[derive(PartialEq)]
-pub struct SingleChoice;
+pub struct LiteralFalse;
 
-impl fmt::Debug for SingleChoice {
+impl fmt::Debug for LiteralFalse {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "false")
     }
 }
 
-impl<'de> Deserialize<'de> for SingleChoice {
+impl<'de> Deserialize<'de> for LiteralFalse {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -143,7 +143,7 @@ impl<'de> Deserialize<'de> for SingleChoice {
         struct SingleChoiceVisitor;
 
         impl<'de> Visitor<'de> for SingleChoiceVisitor {
-            type Value = SingleChoice;
+            type Value = LiteralFalse;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
                 formatter.write_str("bool `false`")
@@ -154,7 +154,7 @@ impl<'de> Deserialize<'de> for SingleChoice {
                 E: serde::de::Error,
             {
                 if !v {
-                    Ok(SingleChoice {})
+                    Ok(LiteralFalse {})
                 } else {
                     Err(E::custom("must be bool false"))
                 }
@@ -359,7 +359,7 @@ prompts:
                             Value::String("Alice".to_string()),
                             Value::String("Joe".to_string()),
                         ],
-                        multi: Some(SingleChoice {}),
+                        multi: Some(LiteralFalse {}),
                     },
                 }],
                 entry_dir: "{{ repo_name }}".to_string(),
@@ -409,7 +409,7 @@ prompts:
                             Value::String("a".to_string()),
                             Value::String("b".to_string())
                         ],
-                        multi: Some(MultiChoices {})
+                        multi: Some(LiteralTrue {})
                     }
                 }],
                 entry_dir: "{{ repo_name }}".to_string(),
