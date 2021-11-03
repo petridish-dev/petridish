@@ -3,6 +3,7 @@ use std::fmt::Debug;
 use std::path::PathBuf;
 
 use clap::{crate_authors, crate_description};
+use dialoguer::Confirm;
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use miette::Result;
 use petridish::config::{PromptConfig, Value};
@@ -61,7 +62,7 @@ fn main() -> Result<()> {
             petridish::config::PromptKind::SingleChoice {
                 default,
                 choices,
-                multi,
+                multi: _,
             } => {
                 let default: usize = match default {
                     Some(default) => *(&choices.iter().position(|i| i == &default).unwrap()),
@@ -73,22 +74,71 @@ fn main() -> Result<()> {
                     .items(&choices)
                     .interact()
                     .unwrap();
-                let value = choices[selection];
+                let value = &choices[selection];
                 match value {
                     petridish::config::Value::Number(v) => {
-                        &context.insert(prompt.name, &v.as_f64().unwrap());
+                        context.insert(prompt.name, &v.as_f64().unwrap());
                     }
                     petridish::config::Value::String(s) => {
-                        &context.insert(prompt.name, &s);
+                        context.insert(prompt.name, s);
                     }
                 }
             }
             petridish::config::PromptKind::MultiChoices {
+                default: _,
+                choices: _,
+                multi: _,
+            } => {
+                // let defaults = {
+                //     match default {
+                //         Some(defaults) => choices
+                //             .iter()
+                //             .map(|choice| defaults.contains(choice))
+                //             .collect(),
+                //         None => vec![false; choices.len()],
+                //     }
+                // };
+
+                // let prompt_message = prompt.message.unwrap_or(prompt.name.clone());
+
+                // let selections = loop {
+                //     let selections = MultiSelect::with_theme(&ColorfulTheme::default())
+                //         .with_prompt(&prompt_message)
+                //         .items(&choices[..])
+                //         .defaults(&defaults[..])
+                //         .interact()
+                //         .unwrap();
+                //     if selections.is_empty() {
+                //         println!("You did not select anything :(");
+                //         continue;
+                //     }
+                //     break selections;
+                // };
+                // let selections: Vec<&Value> = selections.iter().map(|idx| &choices[*idx]).collect();
+                // let selections = selections.iter().map(|v| {
+                //     match v {
+                //         Value::Number(v) => {
+                //             v.as_f64().unwrap()
+                //         },
+                //         Value::String(s) => {
+                //             s
+                //         },
+                //     }
+                // })
+            }
+            petridish::config::PromptKind::Confirm {
+                confirm: _,
                 default,
-                choices,
-                multi,
-            } => todo!(),
-            petridish::config::PromptKind::Confirm { confirm, default } => {}
+            } => {
+                let confirm = Confirm::with_theme(&ColorfulTheme::default())
+                    .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                    .default(default)
+                    .show_default(true)
+                    .wait_for_newline(true)
+                    .interact()
+                    .unwrap();
+                context.insert(prompt.name, &confirm);
+            }
             petridish::config::PromptKind::Normal { default } => match default {
                 Some(Value::String(default)) => {
                     let default = tera.render_str(&default, &context).unwrap();
@@ -97,7 +147,7 @@ fn main() -> Result<()> {
                         .default(default)
                         .interact_text()
                         .unwrap();
-                    &context.insert(prompt.name, &value);
+                    context.insert(prompt.name, &value);
                 }
                 Some(Value::Number(default)) => {
                     let default = default.as_f64().unwrap();
@@ -106,14 +156,14 @@ fn main() -> Result<()> {
                         .default(default)
                         .interact_text()
                         .unwrap();
-                    &context.insert(prompt.name, &value);
+                    context.insert(prompt.name, &value);
                 }
                 _ => {
                     let value: String = Input::with_theme(&ColorfulTheme::default())
                         .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
                         .interact_text()
                         .unwrap();
-                    &context.insert(prompt.name, &value);
+                    context.insert(prompt.name, &value);
                 }
             },
         }
