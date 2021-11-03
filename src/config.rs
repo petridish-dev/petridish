@@ -72,7 +72,7 @@ impl Default for PromptKind {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum Value {
     Number(Number),
