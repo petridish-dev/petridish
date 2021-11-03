@@ -72,7 +72,6 @@ impl Default for PromptKind {
 pub enum Value {
     Number(Number),
     String(String),
-    Bool(bool),
 }
 
 impl fmt::Display for Value {
@@ -82,9 +81,6 @@ impl fmt::Display for Value {
                 write!(f, "{}", v)
             }
             Value::String(v) => {
-                write!(f, "{}", v)
-            }
-            Value::Bool(v) => {
                 write!(f, "{}", v)
             }
         }
