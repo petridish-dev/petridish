@@ -88,7 +88,7 @@ fn main() -> Result<()> {
                 choices,
                 multi,
             } => todo!(),
-            petridish::config::PromptKind::Flag { flag, default } => todo!(),
+            petridish::config::PromptKind::Confirm { confirm, default } => {}
             petridish::config::PromptKind::Normal { default } => match default {
                 Some(Value::String(default)) => {
                     let default = tera.render_str(&default, &context).unwrap();

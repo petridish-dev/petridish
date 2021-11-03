@@ -56,8 +56,8 @@ pub enum PromptKind {
         choices: Vec<Value>,
         multi: Option<LiteralTrue>,
     },
-    Flag {
-        flag: LiteralTrue,
+    Confirm {
+        confirm: LiteralTrue,
         #[serde(default)]
         default: bool,
     },
@@ -516,12 +516,12 @@ prompts:
     }
 
     #[test]
-    fn it_deserialize_flag_v1() {
+    fn it_deserialize_confirm_v1() {
         let config = r#"
 ---
 prompts:
 - name: name
-  flag: true
+  confirm: true
 "#;
 
         assert_eq!(
@@ -530,8 +530,8 @@ prompts:
                 prompts: vec![PromptItem {
                     name: "name".to_string(),
                     message: None,
-                    kind: PromptKind::Flag {
-                        flag: LiteralTrue {},
+                    kind: PromptKind::Confirm {
+                        confirm: LiteralTrue {},
                         default: false
                     },
                 }],
@@ -541,12 +541,12 @@ prompts:
     }
 
     #[test]
-    fn it_deserialize_flag_v2() {
+    fn it_deserialize_confirm_v2() {
         let config = r#"
 ---
 prompts:
 - name: name
-  flag: false
+  confirm: false
 "#;
 
         assert_eq!(
