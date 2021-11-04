@@ -1,4 +1,7 @@
-use std::fmt;
+use std::{
+    fmt, fs, io,
+    path::{Path, PathBuf},
+};
 
 use regex::Regex;
 use serde::{de::Visitor, Deserialize};
@@ -12,6 +15,9 @@ pub enum ConfigError {
 
     #[error("Validate field '{field}' failed: {error}")]
     ValidateFailed { field: String, error: String },
+
+    #[error("Load config '{path}' failed: {}", error.to_string())]
+    LoadConfigFailed { path: PathBuf, error: io::Error },
 }
 
 pub type ConfigResult<T> = Result<T, ConfigError>;
@@ -37,6 +43,15 @@ impl PromptConfig {
         }
 
         Ok(config)
+    }
+
+    pub fn from_yaml_path(p: &Path) -> ConfigResult<Self> {
+        Self::from_yaml(
+            &fs::read_to_string(p).map_err(|e| ConfigError::LoadConfigFailed {
+                path: p.into(),
+                error: e,
+            })?,
+        )
     }
 }
 
@@ -206,6 +221,7 @@ impl<'de> Deserialize<'de> for LiteralFalse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempdir::TempDir;
 
     #[test]
     fn only_name() {
@@ -232,11 +248,11 @@ prompts:
 - name: your-name
 "#;
         match PromptConfig::from_yaml(config).err().unwrap() {
-            ConfigError::ParseFailed(_) => unreachable!(),
             ConfigError::ValidateFailed { field, error } => {
                 assert_eq!(field, "name".to_string());
                 assert_eq!(error, "must match '^[a-zA-Z_$][a-zA-Z_$0-9]*$'".to_string());
             }
+            _ => unreachable!(),
         }
     }
 
@@ -437,5 +453,43 @@ default: [Peter]
                 })),
             }
         );
+    }
+
+    #[test]
+    fn load_from_yaml_file() {
+        let config = r#"
+---
+prompts:
+- name: your_name
+"#;
+        let tmp_dir = TempDir::new("tmp").unwrap();
+        let config_path = &tmp_dir.path().join("petridish.yaml");
+        fs::write(config_path, config).unwrap();
+
+        assert_eq!(
+            PromptConfig::from_yaml_path(config_path).unwrap(),
+            PromptConfig {
+                prompts: vec![PromptItem {
+                    name: "your_name".into(),
+                    message: None,
+                    kind: PromptKind::Default { default: None },
+                }],
+                entry_dir: "{{ repo_name }}".to_string(),
+            }
+        )
+    }
+
+    #[test]
+    fn load_missing_yaml_file() {
+        match PromptConfig::from_yaml_path(&PathBuf::from("/tmo/a.yaml"))
+            .err()
+            .unwrap()
+        {
+            ConfigError::LoadConfigFailed { path, error } => {
+                assert_eq!(path, PathBuf::from("/tmo/a.yaml"));
+                assert_eq!(error.kind(), io::ErrorKind::NotFound);
+            }
+            _ => unreachable!(),
+        }
     }
 }
