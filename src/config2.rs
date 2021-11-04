@@ -3,12 +3,13 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use miette::Diagnostic;
 use regex::Regex;
 use serde::{de::Visitor, Deserialize};
 use serde_yaml::{Error as YamlError, Number};
 use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Diagnostic)]
 pub enum ConfigError {
     #[error("Parse error: {0}")]
     ParseFailed(#[from] YamlError),
