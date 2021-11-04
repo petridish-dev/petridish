@@ -1,25 +1,27 @@
-use std::fmt;
-use std::fs;
-use std::path::Path;
+use std::{
+    fmt, fs, io,
+    path::{Path, PathBuf},
+};
 
 use miette::Diagnostic;
-use regex::{self, Regex};
-use serde::de::Visitor;
-use serde::Deserialize;
-use serde_yaml::Number;
+use regex::Regex;
+use serde::{de::Visitor, Deserialize};
+use serde_yaml::{Error as YamlError, Number};
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
 pub enum ConfigError {
-    #[error("{0}")]
-    ParseError(String),
+    #[error("Parse error: {0}")]
+    ParseFailed(#[from] YamlError),
 
-    #[error("prompts[{index}]: {err}")]
-    CustomParseError { index: usize, err: String },
+    #[error("Validate field '{field}' failed: {error}")]
+    ValidateFailed { field: String, error: String },
 
-    #[error("{0}")]
-    LoadConfigFailed(String),
+    #[error("Load config '{path}' failed: {}", error.to_string())]
+    LoadConfigFailed { path: PathBuf, error: io::Error },
 }
+
+pub type ConfigResult<T> = Result<T, ConfigError>;
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -31,7 +33,27 @@ pub struct PromptConfig {
 }
 
 fn default_entry_dir() -> String {
-    "{{ repo_name }}".to_string()
+    "{{ repo_name }}".to_owned()
+}
+
+impl PromptConfig {
+    pub fn from_yaml(s: &str) -> ConfigResult<Self> {
+        let config = serde_yaml::from_str::<Self>(s).map_err(|e| ConfigError::ParseFailed(e))?;
+        for prompt in &config.prompts {
+            prompt.validate()?;
+        }
+
+        Ok(config)
+    }
+
+    pub fn from_yaml_path(p: &Path) -> ConfigResult<Self> {
+        Self::from_yaml(
+            &fs::read_to_string(p).map_err(|e| ConfigError::LoadConfigFailed {
+                path: p.into(),
+                error: e,
+            })?,
+        )
+    }
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -39,37 +61,121 @@ pub struct PromptItem {
     pub name: String,
     #[serde(default)]
     pub message: Option<String>,
-    #[serde(default, flatten)]
+    #[serde(flatten)]
     pub kind: PromptKind,
+}
+
+impl PromptItem {
+    fn validate(&self) -> Result<(), ConfigError> {
+        let regex_expression = r"^[a-zA-Z_$][a-zA-Z_$0-9]*$";
+        if !Regex::new(regex_expression).unwrap().is_match(&self.name) {
+            Err(ConfigError::ValidateFailed {
+                field: "name".into(),
+                error: format!("must match '{}'", regex_expression),
+            })?
+        }
+
+        match &self.kind {
+            PromptKind::SingleSelect(t) => match t {
+                SingleSelectType::String(v) => {
+                    if let Some(default) = &v.default {
+                        if !v.choices.contains(default) {
+                            Err(ConfigError::ValidateFailed {
+                                field: "default".into(),
+                                error: format!(
+                                    "default '{}' is not one of {}",
+                                    default,
+                                    v.choices
+                                        .iter()
+                                        .map(|s| format!("'{}'", s))
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                                ),
+                            })?
+                        }
+                    }
+                }
+                SingleSelectType::Number(v) => {
+                    if let Some(default) = &v.default {
+                        if !v.choices.contains(default) {
+                            Err(ConfigError::ValidateFailed {
+                                field: "default".into(),
+                                error: format!(
+                                    "default '{}' is not one of {}",
+                                    default,
+                                    v.choices
+                                        .iter()
+                                        .map(|s| format!("'{}'", s))
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                                ),
+                            })?
+                        }
+                    }
+                }
+            },
+            PromptKind::MultiSelect(t) => match t {
+                MultiSelectType::String(v) => {
+                    if let Some(defaults) = &v.default {
+                        for default in defaults {
+                            if !v.choices.contains(default) {
+                                Err(ConfigError::ValidateFailed {
+                                    field: "default".into(),
+                                    error: format!(
+                                        "default '{}' is not one of {}",
+                                        default,
+                                        v.choices
+                                            .iter()
+                                            .map(|s| format!("'{}'", s))
+                                            .collect::<Vec<String>>()
+                                            .join(", ")
+                                    ),
+                                })?
+                            }
+                        }
+                    }
+                }
+                MultiSelectType::Number(v) => {
+                    if let Some(defaults) = &v.default {
+                        for default in defaults {
+                            if !v.choices.contains(default) {
+                                Err(ConfigError::ValidateFailed {
+                                    field: "default".into(),
+                                    error: format!(
+                                        "default '{}' is not one of {}",
+                                        default,
+                                        v.choices
+                                            .iter()
+                                            .map(|s| format!("'{}'", s))
+                                            .collect::<Vec<String>>()
+                                            .join(", ")
+                                    ),
+                                })?
+                            }
+                        }
+                    }
+                }
+            },
+            _ => (),
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum PromptKind {
-    SingleChoice {
-        default: Option<Value>,
-        choices: Vec<Value>,
-        multi: Option<LiteralFalse>,
-    },
-    MultiChoices {
-        default: Option<Vec<Value>>,
-        choices: Vec<Value>,
-        multi: Option<LiteralTrue>,
-    },
+    SingleSelect(SingleSelectType),
+    MultiSelect(MultiSelectType),
     Confirm {
         confirm: LiteralTrue,
         #[serde(default)]
         default: bool,
     },
-    Normal {
+    Default {
         default: Option<Value>,
     },
-}
-
-impl Default for PromptKind {
-    fn default() -> Self {
-        Self::Normal { default: None }
-    }
 }
 
 #[derive(Deserialize, Debug, PartialEq, Clone)]
@@ -92,9 +198,36 @@ impl fmt::Display for Value {
     }
 }
 
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum SingleSelectType {
+    String(SingleSelect<String>),
+    Number(SingleSelect<Number>),
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum MultiSelectType {
+    String(MultiSelect<String>),
+    Number(MultiSelect<Number>),
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct SingleSelect<T> {
+    pub default: Option<T>,
+    pub choices: Vec<T>,
+    pub multi: Option<LiteralFalse>,
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct MultiSelect<T> {
+    pub default: Option<Vec<T>>,
+    pub choices: Vec<T>,
+    pub multi: Option<LiteralTrue>,
+}
+
 #[derive(PartialEq)]
 pub struct LiteralTrue;
-
 impl fmt::Debug for LiteralTrue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "true")
@@ -106,9 +239,9 @@ impl<'de> Deserialize<'de> for LiteralTrue {
     where
         D: serde::Deserializer<'de>,
     {
-        struct MultiChoicesVisitor;
+        struct LiteralTrueVisitor;
 
-        impl<'de> Visitor<'de> for MultiChoicesVisitor {
+        impl<'de> Visitor<'de> for LiteralTrueVisitor {
             type Value = LiteralTrue;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -127,7 +260,7 @@ impl<'de> Deserialize<'de> for LiteralTrue {
             }
         }
 
-        deserializer.deserialize_bool(MultiChoicesVisitor)
+        deserializer.deserialize_bool(LiteralTrueVisitor)
     }
 }
 
@@ -145,9 +278,9 @@ impl<'de> Deserialize<'de> for LiteralFalse {
     where
         D: serde::Deserializer<'de>,
     {
-        struct SingleChoiceVisitor;
+        struct LiteralFalseVisitor;
 
-        impl<'de> Visitor<'de> for SingleChoiceVisitor {
+        impl<'de> Visitor<'de> for LiteralFalseVisitor {
             type Value = LiteralFalse;
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -166,337 +299,306 @@ impl<'de> Deserialize<'de> for LiteralFalse {
             }
         }
 
-        deserializer.deserialize_bool(SingleChoiceVisitor)
-    }
-}
-
-impl PromptConfig {
-    pub fn from_yaml(s: &str) -> Result<PromptConfig, ConfigError> {
-        let config = serde_yaml::from_str::<PromptConfig>(s)
-            .map_err(|e| ConfigError::ParseError(e.to_string()))?;
-        for (idx, prompt_item) in config.prompts.iter().enumerate() {
-            prompt_item
-                .validate()
-                .map_err(|e| ConfigError::CustomParseError { index: idx, err: e })?
-        }
-
-        Ok(config)
-    }
-
-    pub fn from_yaml_path(p: &Path) -> Result<PromptConfig, ConfigError> {
-        let content =
-            fs::read_to_string(p).map_err(|e| ConfigError::LoadConfigFailed(e.to_string()))?;
-
-        Ok(PromptConfig::from_yaml(&content)?)
-    }
-}
-
-impl PromptItem {
-    fn validate(&self) -> Result<(), String> {
-        let regex_expression = r"^[a-zA-Z_$][a-zA-Z_$0-9]*$";
-        if !Regex::new(regex_expression).unwrap().is_match(&self.name) {
-            Err(format!("name must match `{}`", regex_expression))?
-        }
-
-        if let PromptKind::SingleChoice {
-            default: Some(default),
-            choices,
-            multi: _,
-        } = &self.kind
-        {
-            if !choices.contains(default) {
-                Err(format!(
-                    "invalid default, `{}` is not one of {}",
-                    default,
-                    choices
-                        .iter()
-                        .map(|s| format!("`{}`", s))
-                        .collect::<Vec<String>>()
-                        .join(", ")
-                ))?
-            }
-        } else if let PromptKind::MultiChoices {
-            default: Some(default),
-            choices,
-            multi: _,
-        } = &self.kind
-        {
-            for default_item in default {
-                if !choices.contains(default_item) {
-                    Err(format!(
-                        "invalid default, `{}` is not one of {}",
-                        default_item,
-                        choices
-                            .iter()
-                            .map(|s| format!("`{}`", s))
-                            .collect::<Vec<String>>()
-                            .join(", ")
-                    ))?
-                }
-            }
-        }
-
-        Ok(())
+        deserializer.deserialize_bool(LiteralFalseVisitor)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::vec;
-
     use super::*;
-    use serde_yaml;
     use tempdir::TempDir;
 
     #[test]
-    fn it_deserialize_prompt_config() {
+    fn only_name() {
         let config = r#"
 ---
-prompts:
-- name: name
-  message: What's your name
-  default: Peter
+name: your_name
 "#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
-            serde_yaml::from_str::<PromptConfig>(config).unwrap(),
-            PromptConfig {
-                prompts: vec![PromptItem {
-                    name: "name".to_string(),
-                    message: Some("What's your name".to_string()),
-                    kind: PromptKind::Normal {
-                        default: Some(Value::String("Peter".to_string()))
-                    },
-                }],
-                entry_dir: "{{ repo_name }}".to_string(),
+            item,
+            PromptItem {
+                name: "your_name".into(),
+                message: None,
+                kind: PromptKind::Default { default: None },
             }
         )
     }
 
     #[test]
-    fn it_deserialize_prompt_config_missing_name() {
+    fn validate_prompt_config() {
         let config = r#"
 ---
 prompts:
-- default: Peter
-  choices: [Peter, Alice, Joe]
+- name: your-name
 "#;
-        match serde_yaml::from_str::<PromptConfig>(config) {
-            Ok(_) => unreachable!(),
-            Err(err) => {
-                assert_eq!(
-                    err.to_string(),
-                    "prompts[0]: missing field `name` at line 4 column 10"
-                )
+        match PromptConfig::from_yaml(config).err().unwrap() {
+            ConfigError::ValidateFailed { field, error } => {
+                assert_eq!(field, "name".to_string());
+                assert_eq!(error, "must match '^[a-zA-Z_$][a-zA-Z_$0-9]*$'".to_string());
             }
+            _ => unreachable!(),
         }
     }
 
     #[test]
-    fn it_deserialize_prompt_config_omit_fields() {
+    fn with_message() {
         let config = r#"
 ---
-prompts:
-- name: name
+name: your_name
+message: What's your name
 "#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
-            serde_yaml::from_str::<PromptConfig>(config).unwrap(),
-            PromptConfig {
-                prompts: vec![PromptItem {
-                    name: "name".to_string(),
-                    message: None,
-                    kind: PromptKind::Normal { default: None }
-                }],
-                entry_dir: "{{ repo_name }}".to_string(),
+            item,
+            PromptItem {
+                name: "your_name".into(),
+                message: Some("What's your name".into()),
+                kind: PromptKind::Default { default: None },
             }
         )
     }
 
     #[test]
-    fn it_single_choice_v1() {
+    fn single_select() {
         let config = r#"
 ---
-prompts:
-- name: name
-  default: Peter
-  choices: [Peter, Alice, Joe]
+name: your_name
+choices: [Peter, Alice]
+default: Peter
+multi: false
 "#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
-            serde_yaml::from_str::<PromptConfig>(config).unwrap(),
-            PromptConfig {
-                prompts: vec![PromptItem {
-                    name: "name".to_string(),
-                    message: None,
-                    kind: PromptKind::SingleChoice {
-                        default: Some(Value::String("Peter".to_string())),
-                        choices: vec![
-                            Value::String("Peter".to_string()),
-                            Value::String("Alice".to_string()),
-                            Value::String("Joe".to_string()),
-                        ],
-                        multi: None,
-                    },
-                }],
-                entry_dir: "{{ repo_name }}".to_string(),
+            item,
+            PromptItem {
+                name: "your_name".into(),
+                message: None,
+                kind: PromptKind::SingleSelect(SingleSelectType::String(SingleSelect {
+                    default: Some("Peter".into()),
+                    choices: vec!["Peter".into(), "Alice".into()],
+                    multi: Some(LiteralFalse {}),
+                })),
             }
-        )
+        );
+
+        let config = r#"
+---
+name: number
+choices: [1, 2]
+default: 1
+multi: false
+"#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
+        assert_eq!(
+            item,
+            PromptItem {
+                name: "number".to_string(),
+                message: None,
+                kind: PromptKind::SingleSelect(SingleSelectType::Number(SingleSelect {
+                    default: Some(1.into()),
+                    choices: vec![1.into(), 2.into()],
+                    multi: Some(LiteralFalse {}),
+                })),
+            }
+        );
     }
 
     #[test]
-    fn it_single_choice_v2() {
+    fn validate_single_select() {
         let config = r#"
 ---
-prompts:
-- name: name
-  default: Peter
-  choices: [Peter, Alice, Joe]
-  multi: false
-"#;
-        assert_eq!(
-            serde_yaml::from_str::<PromptConfig>(config).unwrap(),
-            PromptConfig {
-                prompts: vec![PromptItem {
-                    name: "name".to_string(),
-                    message: None,
-                    kind: PromptKind::SingleChoice {
-                        default: Some(Value::String("Peter".to_string())),
-                        choices: vec![
-                            Value::String("Peter".to_string()),
-                            Value::String("Alice".to_string()),
-                            Value::String("Joe".to_string()),
-                        ],
-                        multi: Some(LiteralFalse {}),
-                    },
-                }],
-                entry_dir: "{{ repo_name }}".to_string(),
-            }
-        )
-    }
-
-    #[test]
-    fn it_validate_single_choice() {
-        let config = r#"
----
-prompts:
-- name: name
-  choices: [a, b]
-  default: c
+name: your_name
+choices: [Peter, Alice]
+default: Joe
+multi: false
 "#;
 
-        match PromptConfig::from_yaml(config) {
-            Ok(_) => unreachable!(),
-            Err(err) => {
+        match serde_yaml::from_str::<PromptItem>(config)
+            .unwrap()
+            .validate()
+            .err()
+            .unwrap()
+        {
+            ConfigError::ValidateFailed { field, error } => {
+                assert_eq!(field, "default".to_string());
                 assert_eq!(
-                    err.to_string(),
-                    "prompts[0]: invalid default, `c` is not one of `a`, `b`"
-                )
+                    error,
+                    "default 'Joe' is not one of 'Peter', 'Alice'".to_string()
+                );
             }
+            _ => unreachable!(),
         }
     }
 
     #[test]
-    fn it_multi_choices_v1() {
+    fn single_select_omit_multi() {
         let config = r#"
 ---
-prompts:
-- name: name
-  choices: [a, b]
-  multi: true
+name: your_name
+choices: [Peter, Alice]
+default: Peter
 "#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
-            serde_yaml::from_str::<PromptConfig>(config).unwrap(),
-            PromptConfig {
-                prompts: vec![PromptItem {
-                    name: "name".to_string(),
-                    message: None,
-                    kind: PromptKind::MultiChoices {
-                        default: None,
-                        choices: vec![
-                            Value::String("a".to_string()),
-                            Value::String("b".to_string())
-                        ],
-                        multi: Some(LiteralTrue {})
-                    }
-                }],
-                entry_dir: "{{ repo_name }}".to_string(),
+            item,
+            PromptItem {
+                name: "your_name".to_string(),
+                message: None,
+                kind: PromptKind::SingleSelect(SingleSelectType::String(SingleSelect {
+                    default: Some("Peter".into()),
+                    choices: vec!["Peter".into(), "Alice".into()],
+                    multi: None,
+                })),
             }
         )
     }
 
     #[test]
-    fn it_multi_choices_v2() {
+    fn single_select_omit_default() {
         let config = r#"
 ---
-prompts:
-- name: name
-  choices: [a, b]
-  default: [a]
+name: your_name
+choices: [Peter, Alice]
 "#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
-            serde_yaml::from_str::<PromptConfig>(config).unwrap(),
-            PromptConfig {
-                prompts: vec![PromptItem {
-                    name: "name".to_string(),
-                    message: None,
-                    kind: PromptKind::MultiChoices {
-                        default: Some(vec![Value::String("a".to_string())]),
-                        choices: vec![
-                            Value::String("a".to_string()),
-                            Value::String("b".to_string())
-                        ],
-                        multi: None,
-                    }
-                }],
-                entry_dir: "{{ repo_name }}".to_string(),
+            item,
+            PromptItem {
+                name: "your_name".into(),
+                message: None,
+                kind: PromptKind::SingleSelect(SingleSelectType::String(SingleSelect {
+                    default: None,
+                    choices: vec!["Peter".into(), "Alice".into()],
+                    multi: None,
+                })),
             }
         )
     }
 
     #[test]
-    fn it_validate_multi_choices() {
+    fn multi_select() {
         let config = r#"
 ---
-prompts:
-- name: name
-  choices: [a, b]
-  default: [c, d]
+name: your_name
+choices: [Peter, Alice]
+default: [Peter]
+multi: true
+"#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
+        assert_eq!(
+            item,
+            PromptItem {
+                name: "your_name".into(),
+                message: None,
+                kind: PromptKind::MultiSelect(MultiSelectType::String(MultiSelect {
+                    default: Some(vec!["Peter".into()]),
+                    choices: vec!["Peter".into(), "Alice".into()],
+                    multi: Some(LiteralTrue {}),
+                })),
+            }
+        );
+
+        let config = r#"
+---
+name: number
+choices: [1, 2]
+default: [1]
+multi: true
+"#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
+        assert_eq!(
+            item,
+            PromptItem {
+                name: "number".into(),
+                message: None,
+                kind: PromptKind::MultiSelect(MultiSelectType::Number(MultiSelect {
+                    default: Some(vec![1.into()]),
+                    choices: vec![1.into(), 2.into()],
+                    multi: Some(LiteralTrue {}),
+                })),
+            }
+        );
+    }
+
+    #[test]
+    fn multi_select_omit_default() {
+        let config = r#"
+---
+name: your_name
+choices: [Peter, Alice]
+multi: true
+"#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
+        assert_eq!(
+            item,
+            PromptItem {
+                name: "your_name".into(),
+                message: None,
+                kind: PromptKind::MultiSelect(MultiSelectType::String(MultiSelect {
+                    default: None,
+                    choices: vec!["Peter".into(), "Alice".into()],
+                    multi: Some(LiteralTrue {}),
+                })),
+            }
+        );
+    }
+
+    #[test]
+    fn multi_select_omit_multi() {
+        let config = r#"
+---
+name: your_name
+choices: [Peter, Alice]
+default: [Peter]
+"#;
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
+        assert_eq!(
+            item,
+            PromptItem {
+                name: "your_name".into(),
+                message: None,
+                kind: PromptKind::MultiSelect(MultiSelectType::String(MultiSelect {
+                    default: Some(vec!["Peter".into()]),
+                    choices: vec!["Peter".into(), "Alice".into()],
+                    multi: None,
+                })),
+            }
+        );
+    }
+
+    #[test]
+    fn validate_multi_select() {
+        let config = r#"
+---
+name: your_name
+choices: [Peter, Alice]
+default: [Joe]
 "#;
 
-        match PromptConfig::from_yaml(config) {
-            Ok(_) => unreachable!(),
-            Err(err) => {
+        match serde_yaml::from_str::<PromptItem>(config)
+            .unwrap()
+            .validate()
+            .err()
+            .unwrap()
+        {
+            ConfigError::ValidateFailed { field, error } => {
+                assert_eq!(field, "default".to_string());
                 assert_eq!(
-                    err.to_string(),
-                    "prompts[0]: invalid default, `c` is not one of `a`, `b`"
-                )
+                    error,
+                    "default 'Joe' is not one of 'Peter', 'Alice'".to_string()
+                );
             }
+            _ => unreachable!(),
         }
     }
 
     #[test]
-    fn it_validate_name() {
+    fn load_from_yaml_file() {
         let config = r#"
 ---
 prompts:
-- name: 1_name
-"#;
-
-        match PromptConfig::from_yaml(config) {
-            Ok(_) => unreachable!(),
-            Err(err) => {
-                assert_eq!(
-                    err.to_string(),
-                    "prompts[0]: name must match `^[a-zA-Z_$][a-zA-Z_$0-9]*$`"
-                )
-            }
-        }
-    }
-
-    #[test]
-    fn it_deserialize_prompt_config_from_file() {
-        let config = r#"
----
-prompts:
-- name: name
+- name: your_name
 "#;
         let tmp_dir = TempDir::new("tmp").unwrap();
         let config_path = &tmp_dir.path().join("petridish.yaml");
@@ -506,9 +608,9 @@ prompts:
             PromptConfig::from_yaml_path(config_path).unwrap(),
             PromptConfig {
                 prompts: vec![PromptItem {
-                    name: "name".to_string(),
+                    name: "your_name".into(),
                     message: None,
-                    kind: PromptKind::Normal { default: None },
+                    kind: PromptKind::Default { default: None },
                 }],
                 entry_dir: "{{ repo_name }}".to_string(),
             }
@@ -516,49 +618,16 @@ prompts:
     }
 
     #[test]
-    fn it_deserialize_confirm_v1() {
-        let config = r#"
----
-prompts:
-- name: name
-  confirm: true
-"#;
-
-        assert_eq!(
-            PromptConfig::from_yaml(config).unwrap(),
-            PromptConfig {
-                prompts: vec![PromptItem {
-                    name: "name".to_string(),
-                    message: None,
-                    kind: PromptKind::Confirm {
-                        confirm: LiteralTrue {},
-                        default: false
-                    },
-                }],
-                entry_dir: "{{ repo_name }}".to_string(),
+    fn load_missing_yaml_file() {
+        match PromptConfig::from_yaml_path(&PathBuf::from("/tmo/a.yaml"))
+            .err()
+            .unwrap()
+        {
+            ConfigError::LoadConfigFailed { path, error } => {
+                assert_eq!(path, PathBuf::from("/tmo/a.yaml"));
+                assert_eq!(error.kind(), io::ErrorKind::NotFound);
             }
-        )
-    }
-
-    #[test]
-    fn it_deserialize_confirm_v2() {
-        let config = r#"
----
-prompts:
-- name: name
-  confirm: false
-"#;
-
-        assert_eq!(
-            PromptConfig::from_yaml(config).unwrap(),
-            PromptConfig {
-                prompts: vec![PromptItem {
-                    name: "name".to_string(),
-                    message: None,
-                    kind: PromptKind::Normal { default: None },
-                }],
-                entry_dir: "{{ repo_name }}".to_string(),
-            }
-        )
+            _ => unreachable!(),
+        }
     }
 }

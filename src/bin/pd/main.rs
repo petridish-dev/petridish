@@ -6,7 +6,7 @@ use clap::{crate_authors, crate_description};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use dialoguer::{Confirm, MultiSelect as DialoguerMultiSelect};
 use miette::Result;
-use petridish::config2::{
+use petridish::config::{
     MultiSelect, MultiSelectType, PromptConfig, SingleSelect, SingleSelectType, Value,
 };
 use petridish::render::Render;
@@ -61,7 +61,7 @@ fn main() -> Result<()> {
 
     for prompt in config.prompts {
         match prompt.kind {
-            petridish::config2::PromptKind::Default { default } => match default {
+            petridish::config::PromptKind::Default { default } => match default {
                 Some(Value::String(default)) => {
                     let default = tera.render_str(&default, &context).unwrap();
                     let value = Input::with_theme(&ColorfulTheme::default())
@@ -88,7 +88,7 @@ fn main() -> Result<()> {
                     context.insert(prompt.name, &value);
                 }
             },
-            petridish::config2::PromptKind::Confirm {
+            petridish::config::PromptKind::Confirm {
                 confirm: _,
                 default,
             } => {
@@ -101,7 +101,7 @@ fn main() -> Result<()> {
                     .unwrap();
                 context.insert(prompt.name, &confirm);
             }
-            petridish::config2::PromptKind::SingleSelect(value_type) => match value_type {
+            petridish::config::PromptKind::SingleSelect(value_type) => match value_type {
                 SingleSelectType::String(SingleSelect {
                     default,
                     choices,
@@ -139,7 +139,7 @@ fn main() -> Result<()> {
                     context.insert(prompt.name, &value.as_f64().unwrap());
                 }
             },
-            petridish::config2::PromptKind::MultiSelect(value_type) => match value_type {
+            petridish::config::PromptKind::MultiSelect(value_type) => match value_type {
                 MultiSelectType::String(MultiSelect {
                     default,
                     choices,
