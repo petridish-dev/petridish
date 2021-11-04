@@ -75,6 +75,90 @@ impl PromptItem {
             })?
         }
 
+        match &self.kind {
+            PromptKind::SingleSelect(t) => match t {
+                SingleSelectType::String(v) => {
+                    if let Some(default) = &v.default {
+                        if !v.choices.contains(default) {
+                            Err(ConfigError::ValidateFailed {
+                                field: "default".into(),
+                                error: format!(
+                                    "default '{}' is not one of {}",
+                                    default,
+                                    v.choices
+                                        .iter()
+                                        .map(|s| format!("'{}'", s))
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                                ),
+                            })?
+                        }
+                    }
+                }
+                SingleSelectType::Number(v) => {
+                    if let Some(default) = &v.default {
+                        if !v.choices.contains(default) {
+                            Err(ConfigError::ValidateFailed {
+                                field: "default".into(),
+                                error: format!(
+                                    "default '{}' is not one of {}",
+                                    default,
+                                    v.choices
+                                        .iter()
+                                        .map(|s| format!("'{}'", s))
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                                ),
+                            })?
+                        }
+                    }
+                }
+            },
+            PromptKind::MultiSelect(t) => match t {
+                MultiSelectType::String(v) => {
+                    if let Some(defaults) = &v.default {
+                        for default in defaults {
+                            if !v.choices.contains(default) {
+                                Err(ConfigError::ValidateFailed {
+                                    field: "default".into(),
+                                    error: format!(
+                                        "default '{}' is not one of {}",
+                                        default,
+                                        v.choices
+                                            .iter()
+                                            .map(|s| format!("'{}'", s))
+                                            .collect::<Vec<String>>()
+                                            .join(", ")
+                                    ),
+                                })?
+                            }
+                        }
+                    }
+                }
+                MultiSelectType::Number(v) => {
+                    if let Some(defaults) = &v.default {
+                        for default in defaults {
+                            if !v.choices.contains(default) {
+                                Err(ConfigError::ValidateFailed {
+                                    field: "default".into(),
+                                    error: format!(
+                                        "default '{}' is not one of {}",
+                                        default,
+                                        v.choices
+                                            .iter()
+                                            .map(|s| format!("'{}'", s))
+                                            .collect::<Vec<String>>()
+                                            .join(", ")
+                                    ),
+                                })?
+                            }
+                        }
+                    }
+                }
+            },
+            _ => (),
+        }
+
         Ok(())
     }
 }
@@ -321,6 +405,33 @@ multi: false
     }
 
     #[test]
+    fn validate_single_select() {
+        let config = r#"
+---
+name: your_name
+choices: [Peter, Alice]
+default: Joe
+multi: false
+"#;
+
+        match serde_yaml::from_str::<PromptItem>(config)
+            .unwrap()
+            .validate()
+            .err()
+            .unwrap()
+        {
+            ConfigError::ValidateFailed { field, error } => {
+                assert_eq!(field, "default".to_string());
+                assert_eq!(
+                    error,
+                    "default 'Joe' is not one of 'Peter', 'Alice'".to_string()
+                );
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    #[test]
     fn single_select_omit_multi() {
         let config = r#"
 ---
@@ -454,6 +565,32 @@ default: [Peter]
                 })),
             }
         );
+    }
+
+    #[test]
+    fn validate_multi_select() {
+        let config = r#"
+---
+name: your_name
+choices: [Peter, Alice]
+default: [Joe]
+"#;
+
+        match serde_yaml::from_str::<PromptItem>(config)
+            .unwrap()
+            .validate()
+            .err()
+            .unwrap()
+        {
+            ConfigError::ValidateFailed { field, error } => {
+                assert_eq!(field, "default".to_string());
+                assert_eq!(
+                    error,
+                    "default 'Joe' is not one of 'Peter', 'Alice'".to_string()
+                );
+            }
+            _ => unreachable!(),
+        }
     }
 
     #[test]
