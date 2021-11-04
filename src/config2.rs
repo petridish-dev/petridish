@@ -1,7 +1,20 @@
 use std::fmt;
 
+use regex::Regex;
 use serde::{de::Visitor, Deserialize};
-use serde_yaml::{Number, Result as YamlResult};
+use serde_yaml::{Error as YamlError, Number};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum ConfigError {
+    #[error("Parse error: {0}")]
+    ParseFailed(#[from] YamlError),
+
+    #[error("Validate field '{field}' failed: {error}")]
+    ValidateFailed { field: String, error: String },
+}
+
+pub type ConfigResult<T> = Result<T, ConfigError>;
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -16,9 +29,14 @@ fn default_entry_dir() -> String {
     "{{ repo_name }}".to_owned()
 }
 
-impl PromptKind {
-    pub fn from_yaml(s: &str) -> YamlResult<Self> {
-        serde_yaml::from_str(s).into()
+impl PromptConfig {
+    pub fn from_yaml(s: &str) -> ConfigResult<Self> {
+        let config = serde_yaml::from_str::<Self>(s).map_err(|e| ConfigError::ParseFailed(e))?;
+        for prompt in &config.prompts {
+            prompt.validate()?;
+        }
+
+        Ok(config)
     }
 }
 
@@ -29,6 +47,20 @@ pub struct PromptItem {
     pub message: Option<String>,
     #[serde(flatten)]
     pub kind: PromptKind,
+}
+
+impl PromptItem {
+    fn validate(&self) -> Result<(), ConfigError> {
+        let regex_expression = r"^[a-zA-Z_$][a-zA-Z_$0-9]*$";
+        if !Regex::new(regex_expression).unwrap().is_match(&self.name) {
+            Err(ConfigError::ValidateFailed {
+                field: "name".into(),
+                error: format!("must match '{}'", regex_expression),
+            })?
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Deserialize, Debug, PartialEq)]
@@ -190,6 +222,22 @@ name: your_name
                 kind: PromptKind::Default { default: None },
             }
         )
+    }
+
+    #[test]
+    fn validate_prompt_config() {
+        let config = r#"
+---
+prompts:
+- name: your-name
+"#;
+        match PromptConfig::from_yaml(config).err().unwrap() {
+            ConfigError::ParseFailed(_) => unreachable!(),
+            ConfigError::ValidateFailed { field, error } => {
+                assert_eq!(field, "name".to_string());
+                assert_eq!(error, "must match '^[a-zA-Z_$][a-zA-Z_$0-9]*$'".to_string());
+            }
+        }
     }
 
     #[test]
