@@ -78,7 +78,7 @@ mod tests {
     #[test]
     fn it_new_source_failed() {
         let err = new_source("/a/b/c").err().unwrap();
-        assert_eq!(format!("{}", err), "Template dir '/a/b/c' does not exists");
+        assert_eq!(format!("{}", err), "Template dir '/a/b/c' does not exist");
     }
 
     #[test]
@@ -100,7 +100,7 @@ mod tests {
         let err = source.get_config().err().unwrap();
         assert_eq!(
             format!("{}", err),
-            format!("Config '{}/petridish.yaml' does not exists", template_path)
+            format!("Config '{}/petridish.yaml' does not exist", template_path)
         );
     }
 }
