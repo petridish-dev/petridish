@@ -144,6 +144,7 @@ fn main() -> Result<()> {
                     default,
                     choices,
                     multi: _,
+                    emptyable,
                 }) => {
                     let defaults = {
                         match default {
@@ -165,7 +166,7 @@ fn main() -> Result<()> {
                                 .defaults(&defaults[..])
                                 .interact()
                                 .unwrap();
-                        if selections.is_empty() {
+                        if !emptyable && selections.is_empty() {
                             println!("You did not select anything :(");
                             continue;
                         }
@@ -181,6 +182,7 @@ fn main() -> Result<()> {
                     default,
                     choices,
                     multi: _,
+                    emptyable,
                 }) => {
                     let defaults = {
                         match default {
@@ -202,7 +204,7 @@ fn main() -> Result<()> {
                                 .defaults(&defaults[..])
                                 .interact()
                                 .unwrap();
-                        if selections.is_empty() {
+                        if !emptyable && selections.is_empty() {
                             println!("You did not select anything :(");
                             continue;
                         }

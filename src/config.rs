@@ -224,6 +224,8 @@ pub struct MultiSelect<T> {
     pub default: Option<Vec<T>>,
     pub choices: Vec<T>,
     pub multi: Option<LiteralTrue>,
+    #[serde(default)]
+    pub emptyable: bool,
 }
 
 #[derive(PartialEq)]
@@ -495,6 +497,7 @@ multi: true
                     default: Some(vec!["Peter".into()]),
                     choices: vec!["Peter".into(), "Alice".into()],
                     multi: Some(LiteralTrue {}),
+                    emptyable: false,
                 })),
             }
         );
@@ -516,6 +519,7 @@ multi: true
                     default: Some(vec![1.into()]),
                     choices: vec![1.into(), 2.into()],
                     multi: Some(LiteralTrue {}),
+                    emptyable: false,
                 })),
             }
         );
@@ -539,6 +543,7 @@ multi: true
                     default: None,
                     choices: vec!["Peter".into(), "Alice".into()],
                     multi: Some(LiteralTrue {}),
+                    emptyable: false,
                 })),
             }
         );
@@ -562,6 +567,7 @@ default: [Peter]
                     default: Some(vec!["Peter".into()]),
                     choices: vec!["Peter".into(), "Alice".into()],
                     multi: None,
+                    emptyable: false,
                 })),
             }
         );
