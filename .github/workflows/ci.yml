@@ -56,33 +56,33 @@ jobs:
           use-cross: ${{ matrix.job.use-cross }}
           args: --target ${{ matrix.job.target }} --verbose -- --nocapture
 
-  integration_tests:
-    name: Integration tests
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, ubuntu-latest]
-        include:
-          - os: macos-latest
-            target: x86_64-apple-darwin
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-      - name: Build for release
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --target ${{ matrix.target }} --release
-      - name: Run executable
-        run: cargo run --release --target ${{ matrix.target }} -- < /dev/null
+  # integration_tests:
+  #   name: Integration tests
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [macos-latest, ubuntu-latest]
+  #       include:
+  #         - os: macos-latest
+  #           target: x86_64-apple-darwin
+  #         - os: ubuntu-latest
+  #           target: x86_64-unknown-linux-gnu
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
+  #     - name: Install Rust
+  #       uses: actions-rs/toolchain@v1
+  #       with:
+  #         toolchain: stable
+  #         profile: minimal
+  #         override: true
+  #     - name: Build for release
+  #       uses: actions-rs/cargo@v1
+  #       with:
+  #         command: build
+  #         args: --target ${{ matrix.target }} --release
+  #     - name: Run executable
+  #       run: cargo run --release --target ${{ matrix.target }} -- < /dev/null
 
   rustfmt:
     name: Rustfmt
