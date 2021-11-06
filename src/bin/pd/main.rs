@@ -11,7 +11,7 @@ use petridish::config::{
     MultiSelect, MultiSelectType, PromptConfig, SingleSelect, SingleSelectType, Value,
 };
 use petridish::render::Render;
-use petridish::source::new_source;
+use petridish::source::{new_source, SourceStatus};
 use structopt::clap::AppSettings::{ColorAuto, ColoredHelp};
 use structopt::StructOpt;
 use tera::{Context, Tera};
@@ -43,6 +43,19 @@ struct App {
 fn main() -> Result<()> {
     let app = App::from_args();
     let source = new_source(&app.template)?;
+    if matches!(source.get_status()?, SourceStatus::OutOfDate)
+        && Confirm::with_theme(&ColorfulTheme::default())
+            .with_prompt(format!(
+                "'{}' is out of date, do you want to update it?",
+                &app.template,
+            ))
+            .wait_for_newline(true)
+            .interact()
+            .unwrap()
+    {
+        source.update()?;
+    }
+
     let config_path = source.get_config()?;
     let config = PromptConfig::from_yaml_path(&config_path)?;
     let mut context = Context::new();
@@ -244,7 +257,7 @@ fn main() -> Result<()> {
     }
 
     let render = Render::try_new(
-        source.get_template(),
+        &source.get_template()?,
         &config.entry_dir,
         &app.output_dir,
         context,
