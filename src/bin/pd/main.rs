@@ -1,5 +1,6 @@
 use std::env;
 use std::fmt::Debug;
+use std::fs;
 use std::path::PathBuf;
 
 use clap::{crate_authors, crate_description};
@@ -58,6 +59,26 @@ fn main() -> Result<()> {
         .unwrap()
         .trim();
     context.insert(entry_dir_var_name, &entry_dir);
+
+    let entry_dir_path = PathBuf::from(&entry_dir);
+    if entry_dir_path.exists() {
+        let check_remove_entry_dir = || {
+            Confirm::with_theme(&ColorfulTheme::default())
+                .with_prompt(format!(
+                    "{} already exists, do you want to remove it?",
+                    entry_dir_path.display()
+                ))
+                .wait_for_newline(true)
+                .interact()
+                .unwrap()
+        };
+
+        if app.force || check_remove_entry_dir() {
+            fs::remove_dir_all(entry_dir_path).unwrap();
+        } else {
+            return Ok(());
+        }
+    }
 
     for prompt in config.prompts {
         match prompt.kind {
