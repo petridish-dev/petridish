@@ -23,6 +23,7 @@ struct App {
         short = "o",
         long = "output-dir",
         default_value = "",
+        hide_default_value = true,
         help = "Where to output the generated project",
         parse(from_os_str)
     )]
