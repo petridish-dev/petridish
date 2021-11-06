@@ -47,7 +47,7 @@ fn main() -> Result<()> {
     let mut tera = Tera::default();
 
     let entry_dir: String = Input::with_theme(&ColorfulTheme::default())
-        .with_prompt("repo dir name?")
+        .with_prompt(config.entry_dir_prompt_message)
         .interact_text()
         .unwrap();
     let entry_dir_var_name = config

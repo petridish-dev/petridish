@@ -30,10 +30,16 @@ pub struct PromptConfig {
 
     #[serde(default = "default_entry_dir")]
     pub entry_dir: String,
+    #[serde(default = "default_entry_dir_prompt_message")]
+    pub entry_dir_prompt_message: String,
 }
 
 fn default_entry_dir() -> String {
     "{{ repo_name }}".to_owned()
+}
+
+fn default_entry_dir_prompt_message() -> String {
+    "repo dir name?".to_owned()
 }
 
 impl PromptConfig {
@@ -619,6 +625,7 @@ prompts:
                     kind: PromptKind::Default { default: None },
                 }],
                 entry_dir: "{{ repo_name }}".to_string(),
+                entry_dir_prompt_message: "repo dir name?".to_string(),
             }
         )
     }
