@@ -1,5 +1,6 @@
-use miette::Diagnostic;
 use std::path::{Path, PathBuf};
+
+use miette::Diagnostic;
 use thiserror::Error;
 
 #[derive(Error, Debug, Diagnostic)]
@@ -58,7 +59,7 @@ pub fn new_source(template: &str) -> Result<Box<dyn TemplateSource>, SourceError
 }
 
 #[cfg(test)]
-mod tests {
+mod dir_source_tests {
     use std::fs;
 
     use tempdir::TempDir;
