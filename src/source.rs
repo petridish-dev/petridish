@@ -36,7 +36,7 @@ impl DirSource {
     fn new(template: &str) -> Result<Self, SourceError> {
         let template_dir = PathBuf::from(template);
         if !template_dir.exists() {
-            Err(SourceError::DirNotExists(template.to_string()))?
+            return Err(SourceError::DirNotExists(template.to_string()));
         }
 
         Ok(DirSource { template_dir })
@@ -54,7 +54,7 @@ impl TemplateSource for DirSource {
 }
 
 pub fn new_source(template: &str) -> Result<Box<dyn TemplateSource>, SourceError> {
-    return Ok(Box::new(DirSource::new(template)?));
+    Ok(Box::new(DirSource::new(template)?))
 }
 
 #[cfg(test)]

@@ -38,7 +38,7 @@ fn default_entry_dir() -> String {
 
 impl PromptConfig {
     pub fn from_yaml(s: &str) -> ConfigResult<Self> {
-        let config = serde_yaml::from_str::<Self>(s).map_err(|e| ConfigError::ParseFailed(e))?;
+        let config = serde_yaml::from_str::<Self>(s).map_err(ConfigError::ParseFailed)?;
         for prompt in &config.prompts {
             prompt.validate()?;
         }
@@ -69,10 +69,10 @@ impl PromptItem {
     fn validate(&self) -> Result<(), ConfigError> {
         let regex_expression = r"^[a-zA-Z_$][a-zA-Z_$0-9]*$";
         if !Regex::new(regex_expression).unwrap().is_match(&self.name) {
-            Err(ConfigError::ValidateFailed {
+            return Err(ConfigError::ValidateFailed {
                 field: "name".into(),
                 error: format!("must match '{}'", regex_expression),
-            })?
+            });
         }
 
         match &self.kind {
@@ -80,7 +80,7 @@ impl PromptItem {
                 SingleSelectType::String(v) => {
                     if let Some(default) = &v.default {
                         if !v.choices.contains(default) {
-                            Err(ConfigError::ValidateFailed {
+                            return Err(ConfigError::ValidateFailed {
                                 field: "default".into(),
                                 error: format!(
                                     "default '{}' is not one of {}",
@@ -91,14 +91,14 @@ impl PromptItem {
                                         .collect::<Vec<String>>()
                                         .join(", ")
                                 ),
-                            })?
+                            });
                         }
                     }
                 }
                 SingleSelectType::Number(v) => {
                     if let Some(default) = &v.default {
                         if !v.choices.contains(default) {
-                            Err(ConfigError::ValidateFailed {
+                            return Err(ConfigError::ValidateFailed {
                                 field: "default".into(),
                                 error: format!(
                                     "default '{}' is not one of {}",
@@ -109,7 +109,7 @@ impl PromptItem {
                                         .collect::<Vec<String>>()
                                         .join(", ")
                                 ),
-                            })?
+                            });
                         }
                     }
                 }
@@ -119,7 +119,7 @@ impl PromptItem {
                     if let Some(defaults) = &v.default {
                         for default in defaults {
                             if !v.choices.contains(default) {
-                                Err(ConfigError::ValidateFailed {
+                                return Err(ConfigError::ValidateFailed {
                                     field: "default".into(),
                                     error: format!(
                                         "default '{}' is not one of {}",
@@ -130,7 +130,7 @@ impl PromptItem {
                                             .collect::<Vec<String>>()
                                             .join(", ")
                                     ),
-                                })?
+                                });
                             }
                         }
                     }
@@ -139,7 +139,7 @@ impl PromptItem {
                     if let Some(defaults) = &v.default {
                         for default in defaults {
                             if !v.choices.contains(default) {
-                                Err(ConfigError::ValidateFailed {
+                                return Err(ConfigError::ValidateFailed {
                                     field: "default".into(),
                                     error: format!(
                                         "default '{}' is not one of {}",
@@ -150,7 +150,7 @@ impl PromptItem {
                                             .collect::<Vec<String>>()
                                             .join(", ")
                                     ),
-                                })?
+                                });
                             }
                         }
                     }
