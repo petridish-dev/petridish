@@ -13,7 +13,7 @@ miette = { version = "3.2.0", features = ["fancy"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_yaml = "0.8"
 thiserror = "1.0"
-tera = "1"
+tera = "1.15"
 regex = "1.5.4"
 clap = "2"
 structopt = { version = "0.3", features = ["suggestions", "color"] }
