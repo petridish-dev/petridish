@@ -65,7 +65,7 @@ fn main() -> Result<()> {
                 Some(Value::String(default)) => {
                     let default = tera.render_str(&default, &context).unwrap();
                     let value = Input::with_theme(&ColorfulTheme::default())
-                        .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                        .with_prompt(prompt.message.unwrap_or_else(|| prompt.name.clone()))
                         .default(default)
                         .interact_text()
                         .unwrap();
@@ -74,7 +74,7 @@ fn main() -> Result<()> {
                 Some(Value::Number(default)) => {
                     let default = default.as_f64().unwrap();
                     let value = Input::with_theme(&ColorfulTheme::default())
-                        .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                        .with_prompt(prompt.message.unwrap_or_else(|| prompt.name.clone()))
                         .default(default)
                         .interact_text()
                         .unwrap();
@@ -82,7 +82,7 @@ fn main() -> Result<()> {
                 }
                 _ => {
                     let value: String = Input::with_theme(&ColorfulTheme::default())
-                        .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                        .with_prompt(prompt.message.unwrap_or_else(|| prompt.name.clone()))
                         .interact_text()
                         .unwrap();
                     context.insert(prompt.name, &value);
@@ -93,7 +93,7 @@ fn main() -> Result<()> {
                 default,
             } => {
                 let confirm = Confirm::with_theme(&ColorfulTheme::default())
-                    .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                    .with_prompt(prompt.message.unwrap_or_else(|| prompt.name.clone()))
                     .default(default)
                     .show_default(true)
                     .wait_for_newline(true)
@@ -108,11 +108,11 @@ fn main() -> Result<()> {
                     multi: _,
                 }) => {
                     let default: usize = match default {
-                        Some(default) => *(&choices.iter().position(|i| i == &default).unwrap()),
+                        Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
                     };
                     let selection = Select::with_theme(&ColorfulTheme::default())
-                        .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                        .with_prompt(prompt.message.unwrap_or_else(|| prompt.name.clone()))
                         .default(default)
                         .items(&choices)
                         .interact()
@@ -126,11 +126,11 @@ fn main() -> Result<()> {
                     multi: _,
                 }) => {
                     let default: usize = match default {
-                        Some(default) => *(&choices.iter().position(|i| i == &default).unwrap()),
+                        Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
                     };
                     let selection = Select::with_theme(&ColorfulTheme::default())
-                        .with_prompt(prompt.message.unwrap_or(prompt.name.clone()))
+                        .with_prompt(prompt.message.unwrap_or_else(|| prompt.name.clone()))
                         .default(default)
                         .items(&choices)
                         .interact()
@@ -156,7 +156,7 @@ fn main() -> Result<()> {
                         }
                     };
 
-                    let prompt_message = prompt.message.unwrap_or(prompt.name.clone());
+                    let prompt_message = prompt.message.unwrap_or_else(|| prompt.name.clone());
 
                     let selections = loop {
                         let selections =
@@ -194,7 +194,7 @@ fn main() -> Result<()> {
                         }
                     };
 
-                    let prompt_message = prompt.message.unwrap_or(prompt.name.clone());
+                    let prompt_message = prompt.message.unwrap_or_else(|| prompt.name.clone());
 
                     let selections = loop {
                         let selections =
