@@ -21,12 +21,12 @@ use tera::{Context, Tera};
 struct App {
     #[structopt(
         short = "o",
-        long = "output",
-        default_value = ".",
+        long = "output-dir",
+        default_value = "",
         help = "Where to output the generated project",
         parse(from_os_str)
     )]
-    output: PathBuf,
+    output_dir: PathBuf,
 
     #[structopt(
         short = "f",
@@ -51,6 +51,7 @@ fn main() -> Result<()> {
         .with_prompt(config.entry_dir_prompt_message)
         .interact_text()
         .unwrap();
+
     let entry_dir_var_name = config
         .entry_dir
         .strip_prefix("{{")
@@ -60,13 +61,13 @@ fn main() -> Result<()> {
         .trim();
     context.insert(entry_dir_var_name, &entry_dir);
 
-    let entry_dir_path = PathBuf::from(&entry_dir);
-    if entry_dir_path.exists() {
+    let output = app.output_dir.join(&entry_dir);
+    if output.exists() {
         let check_remove_entry_dir = || {
             Confirm::with_theme(&ColorfulTheme::default())
                 .with_prompt(format!(
                     "{} already exists, do you want to remove it?",
-                    entry_dir_path.display()
+                    &output.display()
                 ))
                 .wait_for_newline(true)
                 .interact()
@@ -74,7 +75,7 @@ fn main() -> Result<()> {
         };
 
         if app.force || check_remove_entry_dir() {
-            fs::remove_dir_all(entry_dir_path).unwrap();
+            fs::remove_dir_all(&output).unwrap();
         } else {
             return Ok(());
         }
@@ -244,7 +245,7 @@ fn main() -> Result<()> {
     let render = Render::try_new(
         source.get_template(),
         &config.entry_dir,
-        &app.output,
+        &app.output_dir,
         context,
     )?;
     render.render()?;

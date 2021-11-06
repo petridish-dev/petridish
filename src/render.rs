@@ -14,7 +14,7 @@ pub struct Render {
     template_dir: PathBuf,
     entry_dir_name: String,
     context: Context,
-    output: PathBuf,
+    output_dir: PathBuf,
 }
 
 #[derive(Error, Debug, Diagnostic)]
@@ -30,7 +30,7 @@ impl Render {
     pub fn try_new(
         template_dir: &Path,
         entry_dir_name: &str,
-        output: &Path,
+        output_dir: &Path,
         context: Context,
     ) -> Result<Self, RenderError> {
         let entry_dir = &template_dir.join(&entry_dir_name);
@@ -42,7 +42,7 @@ impl Render {
             template_dir: template_dir.into(),
             entry_dir_name: entry_dir_name.into(),
             context,
-            output: output.into(),
+            output_dir: output_dir.into(),
         })
     }
 }
@@ -85,10 +85,10 @@ impl Render {
             .render_str(&self.entry_dir_name, &self.context)
             .map_err(|e| RenderError::RenderFailed(e.to_string()))?;
         let rendered_entry_path = tmp_dir.path().join(&rendered_entry_name);
-        let output = self.output.join(&rendered_entry_name);
-        if output.exists() {
-            fs::remove_dir_all(&output).unwrap();
+        if !self.output_dir.exists() {
+            fs::create_dir_all(&self.output_dir).unwrap();
         }
+        let output = self.output_dir.join(&rendered_entry_name);
         fs::rename(rendered_entry_path, output).unwrap();
         tmp_dir.close().unwrap();
         Ok(())
