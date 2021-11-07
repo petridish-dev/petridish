@@ -104,13 +104,13 @@ jobs:
           command: publish
           args: --token ${{ secrets.CARGO_API_KEY }} --allow-dirty
 
-  bump-homebrew-formula:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Bump Homebrew formulae
-        uses: dawidd6/action-homebrew-bump-formula@v3
-        with:
-          formula: petridish
-          token: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
+  # bump-homebrew-formula:
+  #   runs-on: macos-latest
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
+  #     - name: Bump Homebrew formulae
+  #       uses: dawidd6/action-homebrew-bump-formula@v3
+  #       with:
+  #         formula: petridish
+  #         token: ${{ secrets.HOMEBREW_GITHUB_API_TOKEN }}
