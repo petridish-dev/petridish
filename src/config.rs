@@ -1,27 +1,10 @@
-use std::{
-    fmt, fs, io,
-    path::{Path, PathBuf},
-};
+use std::{fmt, fs, path::Path};
 
-use miette::Diagnostic;
 use regex::Regex;
 use serde::{de::Visitor, Deserialize};
-use serde_yaml::{Error as YamlError, Number};
-use thiserror::Error;
+use serde_yaml::Number;
 
-#[derive(Error, Debug, Diagnostic)]
-pub enum ConfigError {
-    #[error("Parse error: {0}")]
-    ParseFailed(#[from] YamlError),
-
-    #[error("Validate field '{field}' failed: {error}")]
-    ValidateFailed { field: String, error: String },
-
-    #[error("Load config '{path}' failed: {}", error.to_string())]
-    LoadConfigFailed { path: PathBuf, error: io::Error },
-}
-
-pub type ConfigResult<T> = Result<T, ConfigError>;
+use crate::error::{Error, Result};
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(deny_unknown_fields)]
@@ -43,8 +26,8 @@ fn default_entry_dir_prompt_message() -> String {
 }
 
 impl PromptConfig {
-    pub fn from_yaml(s: &str) -> ConfigResult<Self> {
-        let config = serde_yaml::from_str::<Self>(s).map_err(ConfigError::ParseFailed)?;
+    pub fn from_yaml(s: &str) -> Result<Self> {
+        let config = serde_yaml::from_str::<Self>(s).map_err(Error::ParseError)?;
         for prompt in &config.prompts {
             prompt.validate()?;
         }
@@ -52,13 +35,8 @@ impl PromptConfig {
         Ok(config)
     }
 
-    pub fn from_yaml_path(p: &Path) -> ConfigResult<Self> {
-        Self::from_yaml(
-            &fs::read_to_string(p).map_err(|e| ConfigError::LoadConfigFailed {
-                path: p.into(),
-                error: e,
-            })?,
-        )
+    pub fn from_yaml_path(p: &Path) -> Result<Self> {
+        Self::from_yaml(&fs::read_to_string(p).map_err(Error::Io)?)
     }
 }
 
@@ -72,10 +50,10 @@ pub struct PromptItem {
 }
 
 impl PromptItem {
-    fn validate(&self) -> Result<(), ConfigError> {
+    fn validate(&self) -> Result<()> {
         let regex_expression = r"^[a-zA-Z_$][a-zA-Z_$0-9]*$";
         if !Regex::new(regex_expression).unwrap().is_match(&self.name) {
-            return Err(ConfigError::ValidateFailed {
+            return Err(Error::ValidateError {
                 field: "name".into(),
                 error: format!("must match '{}'", regex_expression),
             });
@@ -86,7 +64,7 @@ impl PromptItem {
                 SingleSelectType::String(v) => {
                     if let Some(default) = &v.default {
                         if !v.choices.contains(default) {
-                            return Err(ConfigError::ValidateFailed {
+                            return Err(Error::ValidateError {
                                 field: "default".into(),
                                 error: format!(
                                     "default '{}' is not one of {}",
@@ -104,7 +82,7 @@ impl PromptItem {
                 SingleSelectType::Number(v) => {
                     if let Some(default) = &v.default {
                         if !v.choices.contains(default) {
-                            return Err(ConfigError::ValidateFailed {
+                            return Err(Error::ValidateError {
                                 field: "default".into(),
                                 error: format!(
                                     "default '{}' is not one of {}",
@@ -125,7 +103,7 @@ impl PromptItem {
                     if let Some(defaults) = &v.default {
                         for default in defaults {
                             if !v.choices.contains(default) {
-                                return Err(ConfigError::ValidateFailed {
+                                return Err(Error::ValidateError {
                                     field: "default".into(),
                                     error: format!(
                                         "default '{}' is not one of {}",
@@ -145,7 +123,7 @@ impl PromptItem {
                     if let Some(defaults) = &v.default {
                         for default in defaults {
                             if !v.choices.contains(default) {
-                                return Err(ConfigError::ValidateFailed {
+                                return Err(Error::ValidateError {
                                     field: "default".into(),
                                     error: format!(
                                         "default '{}' is not one of {}",
@@ -243,7 +221,7 @@ impl fmt::Debug for LiteralTrue {
 }
 
 impl<'de> Deserialize<'de> for LiteralTrue {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
@@ -256,7 +234,7 @@ impl<'de> Deserialize<'de> for LiteralTrue {
                 formatter.write_str("bool `true`")
             }
 
-            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+            fn visit_bool<E>(self, v: bool) -> std::result::Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
@@ -282,7 +260,7 @@ impl fmt::Debug for LiteralFalse {
 }
 
 impl<'de> Deserialize<'de> for LiteralFalse {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
@@ -295,7 +273,7 @@ impl<'de> Deserialize<'de> for LiteralFalse {
                 formatter.write_str("bool `false`")
             }
 
-            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+            fn visit_bool<E>(self, v: bool) -> std::result::Result<Self::Value, E>
             where
                 E: serde::de::Error,
             {
@@ -314,6 +292,9 @@ impl<'de> Deserialize<'de> for LiteralFalse {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::{io, path::PathBuf};
+
     use tempdir::TempDir;
 
     #[test]
@@ -341,7 +322,7 @@ prompts:
 - name: your-name
 "#;
         match PromptConfig::from_yaml(config).err().unwrap() {
-            ConfigError::ValidateFailed { field, error } => {
+            Error::ValidateError { field, error } => {
                 assert_eq!(field, "name".to_string());
                 assert_eq!(error, "must match '^[a-zA-Z_$][a-zA-Z_$0-9]*$'".to_string());
             }
@@ -428,7 +409,7 @@ multi: false
             .err()
             .unwrap()
         {
-            ConfigError::ValidateFailed { field, error } => {
+            Error::ValidateError { field, error } => {
                 assert_eq!(field, "default".to_string());
                 assert_eq!(
                     error,
@@ -594,7 +575,7 @@ default: [Joe]
             .err()
             .unwrap()
         {
-            ConfigError::ValidateFailed { field, error } => {
+            Error::ValidateError { field, error } => {
                 assert_eq!(field, "default".to_string());
                 assert_eq!(
                     error,
@@ -636,8 +617,7 @@ prompts:
             .err()
             .unwrap()
         {
-            ConfigError::LoadConfigFailed { path, error } => {
-                assert_eq!(path, PathBuf::from("/tmo/a.yaml"));
+            Error::Io(error) => {
                 assert_eq!(error.kind(), io::ErrorKind::NotFound);
             }
             _ => unreachable!(),
