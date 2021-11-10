@@ -1,18 +1,8 @@
 use std::path::{Path, PathBuf};
 
-use miette::Diagnostic;
-use thiserror::Error;
+use crate::{Error, Result};
 
 const CONFIG_NAME: &str = "petridish.yaml";
-
-#[derive(Error, Debug, Diagnostic)]
-pub enum RepoError {
-    #[error("download '{repo}' failed: {error}")]
-    DownloadFailed { repo: String, error: String },
-
-    #[error("validate '{repo}' failed: {error}")]
-    ValidateFailed { repo: String, error: String },
-}
 
 pub trait Repository {
     fn repo(&self) -> String;
@@ -21,21 +11,21 @@ pub trait Repository {
     fn cached(&self) -> bool {
         false
     }
-    fn download(&self) -> Result<(), RepoError>;
-    fn validate(&self) -> Result<(), RepoError> {
+    fn download(&self) -> Result<()>;
+    fn validate(&self) -> Result<()> {
         let repo_dir = self.determine_repo_dir();
         let repo = self.repo();
         if !repo_dir.exists() {
-            return Err(RepoError::ValidateFailed {
-                repo,
+            return Err(Error::Repo {
+                name: repo,
                 error: "repo dir not found".into(),
             });
         }
 
         let config_path = repo_dir.join(CONFIG_NAME);
         if !config_path.exists() {
-            return Err(RepoError::ValidateFailed {
-                repo,
+            return Err(Error::Repo {
+                name: repo,
                 error: format!("config '{}' not found", config_path.display()),
             });
         }
@@ -61,7 +51,7 @@ impl Repository for Directory {
         &self.path
     }
 
-    fn download(&self) -> Result<(), RepoError> {
+    fn download(&self) -> Result<()> {
         Ok(())
     }
 }
@@ -96,7 +86,7 @@ mod directory_tests {
     fn validate_uncreated_repo_dir(repo: Directory) {
         assert!(matches!(
                 repo.validate(),
-                Err(RepoError::ValidateFailed { repo, error }) if repo == "/a/b" && error == "repo dir not found"))
+                Err(Error::Repo { name, error }) if name == "/a/b" && error == "repo dir not found"))
     }
 
     #[rstest]
@@ -110,7 +100,7 @@ mod directory_tests {
 
         assert!(matches!(
                 repo.validate(),
-                Err(RepoError::ValidateFailed { repo: _, error }) if error == format!("config '{}' not found", config_path.display())));
+                Err(Error::Repo { name: _, error }) if error == format!("config '{}' not found", config_path.display())));
         repo_dir.close().unwrap();
     }
 
