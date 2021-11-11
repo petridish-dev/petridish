@@ -1,7 +1,4 @@
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use std::{fmt::Display, path::PathBuf};
 
 use crate::{Error, Result};
 
@@ -9,7 +6,7 @@ const CONFIG_NAME: &str = "petridish.yaml";
 
 pub trait Repository: Display {
     fn kind(&self) -> &'static str;
-    fn determine_repo_dir(&self) -> &Path;
+    fn determine_repo_dir(&self) -> PathBuf;
     fn cached(&self) -> bool {
         false
     }
@@ -45,8 +42,8 @@ impl Repository for Directory {
         "directory"
     }
 
-    fn determine_repo_dir(&self) -> &Path {
-        &self.path
+    fn determine_repo_dir(&self) -> PathBuf {
+        self.path.clone()
     }
 
     fn sync(&self) -> Result<()> {
@@ -83,7 +80,7 @@ mod directory_tests {
 
     #[rstest]
     fn determine_repo_dir(repo: Directory) {
-        assert_eq!(repo.determine_repo_dir(), &PathBuf::from("/a/b"))
+        assert_eq!(repo.determine_repo_dir(), PathBuf::from("/a/b"))
     }
 
     #[rstest]
