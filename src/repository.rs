@@ -64,10 +64,10 @@ impl Display for Directory {
 mod directory_tests {
     use std::fs;
 
-    use super::*;
-
     use rstest::*;
     use tempdir::TempDir;
+
+    use super::*;
 
     #[fixture]
     fn repo() -> Directory {
@@ -77,7 +77,7 @@ mod directory_tests {
     }
 
     #[rstest]
-    fn kind(repo: Directory) {
+    fn check_kind(repo: Directory) {
         assert_eq!(repo.kind(), "directory")
     }
 
@@ -87,14 +87,20 @@ mod directory_tests {
     }
 
     #[rstest]
-    fn validate_uncreated_repo_dir(repo: Directory) {
-        assert!(matches!(
-                repo.validate(),
-                Err(Error::Repo { name, error }) if name == "/a/b" && error == "repo dir not found"))
+    fn validate_repo_dir() {
+        let repo_dir = TempDir::new("template").unwrap();
+        let repo = Directory {
+            path: PathBuf::from(repo_dir.path()),
+        };
+
+        let config_path = repo_dir.path().join(CONFIG_NAME);
+        fs::write(&config_path, "").unwrap();
+
+        assert!(repo.validate().is_ok());
     }
 
     #[rstest]
-    fn validate_created_repo_dir_which_missing_config() {
+    fn validate_repo_dir_while_missing_config() {
         let repo_dir = TempDir::new("template").unwrap();
         let repo = Directory {
             path: PathBuf::from(repo_dir.path()),
@@ -105,20 +111,12 @@ mod directory_tests {
         assert!(matches!(
                 repo.validate(),
                 Err(Error::Repo { name: _, error }) if error == format!("config '{}' not found", config_path.display())));
-        repo_dir.close().unwrap();
     }
 
     #[rstest]
-    fn validate_created_repo_dir_which_has_config() {
-        let repo_dir = TempDir::new("template").unwrap();
-        let repo = Directory {
-            path: PathBuf::from(repo_dir.path()),
-        };
-
-        let config_path = repo_dir.path().join(CONFIG_NAME);
-        fs::write(&config_path, "").unwrap();
-
-        assert!(repo.validate().is_ok());
-        repo_dir.close().unwrap();
+    fn validate_nonexistent_repo_dir(repo: Directory) {
+        assert!(matches!(
+                repo.validate(),
+                Err(Error::Repo { name, error }) if name == "/a/b" && error == "repo dir not found"))
     }
 }
