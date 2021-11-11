@@ -1,23 +1,25 @@
-use std::path::{Path, PathBuf};
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 use crate::{Error, Result};
 
 const CONFIG_NAME: &str = "petridish.yaml";
 
-pub trait Repository {
-    fn repo(&self) -> String;
+pub trait Repository: Display {
     fn kind(&self) -> &'static str;
     fn determine_repo_dir(&self) -> &Path;
     fn cached(&self) -> bool {
         false
     }
-    fn download(&self) -> Result<()>;
+    fn sync(&self) -> Result<()>;
     fn validate(&self) -> Result<()> {
         let repo_dir = self.determine_repo_dir();
-        let repo = self.repo();
+        let name = self.to_string();
         if !repo_dir.exists() {
             return Err(Error::Repo {
-                name: repo,
+                name,
                 error: "repo dir not found".into(),
             });
         }
@@ -25,7 +27,7 @@ pub trait Repository {
         let config_path = repo_dir.join(CONFIG_NAME);
         if !config_path.exists() {
             return Err(Error::Repo {
-                name: repo,
+                name,
                 error: format!("config '{}' not found", config_path.display()),
             });
         }
@@ -43,16 +45,18 @@ impl Repository for Directory {
         "directory"
     }
 
-    fn repo(&self) -> String {
-        self.path.display().to_string()
-    }
-
     fn determine_repo_dir(&self) -> &Path {
         &self.path
     }
 
-    fn download(&self) -> Result<()> {
+    fn sync(&self) -> Result<()> {
         Ok(())
+    }
+}
+
+impl Display for Directory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.path.display())
     }
 }
 
