@@ -33,6 +33,23 @@ pub trait Repository: Display {
     }
 }
 
+pub fn try_new_repository(repo: &str) -> Result<Box<dyn Repository>> {
+    let ret: Box<dyn Repository>;
+
+    if repo.ends_with(".git")
+        && (repo.starts_with("https://") || repo.starts_with("http://") || repo.starts_with("git@"))
+    {
+        ret = Box::new(Git { uri: repo.into() });
+    } else {
+        ret = Box::new(Directory {
+            path: PathBuf::from(repo.to_string()),
+        });
+    }
+
+    ret.validate()?;
+    Ok(ret)
+}
+
 struct Directory {
     path: PathBuf,
 }
