@@ -299,10 +299,10 @@ mod tests {
 
     #[test]
     fn only_name() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -316,11 +316,11 @@ name: your_name
 
     #[test]
     fn validate_prompt_config() {
-        let config = r#"
+        let config = "
 ---
 prompts:
 - name: your-name
-"#;
+";
         match PromptConfig::from_yaml(config).err().unwrap() {
             Error::ValidateError { field, error } => {
                 assert_eq!(field, "name".to_string());
@@ -332,11 +332,11 @@ prompts:
 
     #[test]
     fn with_message() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 message: What's your name
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -350,13 +350,13 @@ message: What's your name
 
     #[test]
     fn single_select() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 choices: [Peter, Alice]
 default: Peter
 multi: false
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -371,13 +371,13 @@ multi: false
             }
         );
 
-        let config = r#"
+        let config = "
 ---
 name: number
 choices: [1, 2]
 default: 1
 multi: false
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -395,13 +395,13 @@ multi: false
 
     #[test]
     fn validate_single_select() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 choices: [Peter, Alice]
 default: Joe
 multi: false
-"#;
+";
 
         match serde_yaml::from_str::<PromptItem>(config)
             .unwrap()
@@ -422,12 +422,12 @@ multi: false
 
     #[test]
     fn single_select_omit_multi() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 choices: [Peter, Alice]
 default: Peter
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -445,11 +445,11 @@ default: Peter
 
     #[test]
     fn single_select_omit_default() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 choices: [Peter, Alice]
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -467,13 +467,13 @@ choices: [Peter, Alice]
 
     #[test]
     fn multi_select() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 choices: [Peter, Alice]
 default: [Peter]
 multi: true
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -489,13 +489,13 @@ multi: true
             }
         );
 
-        let config = r#"
+        let config = "
 ---
 name: number
 choices: [1, 2]
 default: [1]
 multi: true
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -514,12 +514,12 @@ multi: true
 
     #[test]
     fn multi_select_omit_default() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 choices: [Peter, Alice]
 multi: true
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -538,12 +538,12 @@ multi: true
 
     #[test]
     fn multi_select_omit_multi() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 choices: [Peter, Alice]
 default: [Peter]
-"#;
+";
         let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
         assert_eq!(
             item,
@@ -562,12 +562,12 @@ default: [Peter]
 
     #[test]
     fn validate_multi_select() {
-        let config = r#"
+        let config = "
 ---
 name: your_name
 choices: [Peter, Alice]
 default: [Joe]
-"#;
+";
 
         match serde_yaml::from_str::<PromptItem>(config)
             .unwrap()
@@ -588,11 +588,11 @@ default: [Joe]
 
     #[test]
     fn load_from_yaml_file() {
-        let config = r#"
+        let config = "
 ---
 prompts:
 - name: your_name
-"#;
+";
         let tmp_dir = TempDir::new("tmp").unwrap();
         let config_path = &tmp_dir.path().join("petridish.yaml");
         fs::write(config_path, config).unwrap();
