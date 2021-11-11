@@ -1,20 +1,21 @@
 use std::env;
 use std::fmt::Debug;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use clap::{crate_authors, crate_description};
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use dialoguer::{Confirm, MultiSelect as DialoguerMultiSelect};
-use miette::Result;
 use petridish::config::{
     MultiSelect, MultiSelectType, PromptConfig, SingleSelect, SingleSelectType, Value,
 };
 use petridish::render::Render;
-use petridish::source::{new_source, SourceStatus};
+use petridish::repository::new_repository;
 use structopt::clap::AppSettings::{ColorAuto, ColoredHelp};
 use structopt::StructOpt;
 use tera::{Context, Tera};
+
+use petridish::{Error, Result};
 
 #[derive(Debug, StructOpt)]
 #[structopt(name="petridish", author = crate_authors!(), about = crate_description!(), setting(ColorAuto), setting(ColoredHelp))]
@@ -40,23 +41,29 @@ struct App {
     template: String,
 }
 
+fn get_config(repo_dir: &Path) -> Result<PathBuf> {
+    for config_name in ["petridish.yaml", "petridish.yml"] {
+        let config = repo_dir.join(config_name);
+        if config.exists() {
+            return Ok(config);
+        }
+    }
+    Err(Error::Io(std::io::Error::new(
+        std::io::ErrorKind::NotFound,
+        format!("petridish.yaml not found in {}", repo_dir.display()),
+    )))
+}
+
 fn main() -> Result<()> {
     let app = App::from_args();
-    let source = new_source(&app.template)?;
-    if matches!(source.get_status()?, SourceStatus::OutOfDate)
-        && Confirm::with_theme(&ColorfulTheme::default())
-            .with_prompt(format!(
-                "'{}' is out of date, do you want to update it?",
-                &app.template,
-            ))
-            .wait_for_newline(true)
-            .interact()
-            .unwrap()
-    {
-        source.update()?;
+    let repo = new_repository(&app.template);
+    let repo_dir = repo.determine_repo_dir();
+    if !repo_dir.exists() {
+        repo.sync()?
     }
+    repo.validate()?;
 
-    let config_path = source.get_config()?;
+    let config_path = get_config(&repo_dir)?;
     let config = PromptConfig::from_yaml_path(&config_path)?;
     let mut context = Context::new();
     let mut tera = Tera::default();
@@ -256,12 +263,7 @@ fn main() -> Result<()> {
         }
     }
 
-    let render = Render::try_new(
-        &source.get_template()?,
-        &config.entry_dir,
-        &app.output_dir,
-        context,
-    )?;
+    let render = Render::try_new(&repo_dir, &config.entry_dir, &app.output_dir, context)?;
     render.render()?;
     Ok(())
 }
