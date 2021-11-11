@@ -3,12 +3,12 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use miette::Diagnostic;
 use tempdir::TempDir;
 use tera::Context;
 use tera::Tera;
-use thiserror::Error;
 use walkdir::WalkDir;
+
+use crate::{Error, Result};
 
 pub struct Render {
     template_dir: PathBuf,
@@ -17,25 +17,19 @@ pub struct Render {
     output_dir: PathBuf,
 }
 
-#[derive(Error, Debug, Diagnostic)]
-pub enum RenderError {
-    #[error("Entry dir '{0}' does not exist")]
-    EntryDirNotExists(PathBuf),
-
-    #[error("{0}")]
-    RenderFailed(String),
-}
-
 impl Render {
     pub fn try_new(
         template_dir: &Path,
         entry_dir_name: &str,
         output_dir: &Path,
         context: Context,
-    ) -> Result<Self, RenderError> {
+    ) -> Result<Self> {
         let entry_dir = &template_dir.join(&entry_dir_name);
         if !entry_dir.exists() {
-            return Err(RenderError::EntryDirNotExists(entry_dir.into()));
+            return Err(Error::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("entry dir '{}' not found", entry_dir.display()),
+            )));
         }
 
         Ok(Self {
@@ -48,7 +42,7 @@ impl Render {
 }
 
 impl Render {
-    pub fn render(&self) -> Result<(), RenderError> {
+    pub fn render(&self) -> Result<()> {
         let tmp_dir = TempDir::new("template").unwrap();
         let mut tera = Tera::default();
         for entry in WalkDir::new(&self.template_dir.join(&self.entry_dir_name))
@@ -59,7 +53,7 @@ impl Render {
             let render_entry_path = PathBuf::from(
                 &tera
                     .render_str(&entry.path().display().to_string(), &self.context)
-                    .map_err(|e| RenderError::RenderFailed(e.to_string()))?,
+                    .map_err(|e| Error::RenderError(e.to_string()))?,
             );
 
             let tmp_entry_path = {
@@ -76,14 +70,14 @@ impl Render {
             fs::write(tmp_entry_path, {
                 &tera
                     .render_str(&template_content, &self.context)
-                    .map_err(|e| RenderError::RenderFailed(e.to_string()))?
+                    .map_err(|e| Error::RenderError(e.to_string()))?
             })
             .unwrap();
         }
 
         let rendered_entry_name = tera
             .render_str(&self.entry_dir_name, &self.context)
-            .map_err(|e| RenderError::RenderFailed(e.to_string()))?;
+            .map_err(|e| Error::RenderError(e.to_string()))?;
         let rendered_entry_path = tmp_dir.path().join(&rendered_entry_name);
         if !self.output_dir.exists() {
             fs::create_dir_all(&self.output_dir).unwrap();
