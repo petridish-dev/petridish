@@ -1,4 +1,7 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{fmt::Display, fs, path::PathBuf, process::Command};
+
+use dirs::cache_dir;
+use md5;
 
 use crate::{Error, Result};
 
@@ -7,9 +10,6 @@ const CONFIG_NAME: &str = "petridish.yaml";
 pub trait Repository: Display {
     fn kind(&self) -> &'static str;
     fn determine_repo_dir(&self) -> PathBuf;
-    fn cached(&self) -> bool {
-        false
-    }
     fn sync(&self) -> Result<()>;
     fn validate(&self) -> Result<()> {
         let repo_dir = self.determine_repo_dir();
@@ -115,5 +115,81 @@ mod directory_tests {
         assert!(matches!(
                 repo.validate(),
                 Err(Error::Repo { name, error }) if name == "/a/b" && error == "repo dir not found"))
+    }
+}
+
+trait Cached {
+    fn md5(&self) -> String;
+    fn cached_repo(&self) -> PathBuf {
+        let md5 = self.md5();
+        let cache_dir = get_cache_dir();
+
+        cache_dir.join(md5)
+    }
+}
+
+/// Returns the path to the user's repository cache directory.
+///
+///
+/// |Platform | Example                                                         |
+/// | ------- | --------------------------------------------------------------- |
+/// | Linux   | /home/alice/.config/petridish/repositories                      |
+/// | macOS   | /Users/Alice/Library/Application Support/petridish/repositories |
+/// | Windows | C:\Users\Alice\AppData\Roaming\petridish\repositories           |
+fn get_cache_dir() -> PathBuf {
+    cache_dir().unwrap().join("petridish/repositories")
+}
+
+struct Git {
+    uri: String,
+}
+
+impl Cached for Git {
+    fn md5(&self) -> String {
+        format!("{:x}", md5::compute(&self.uri))
+    }
+}
+
+impl Display for Git {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.uri)
+    }
+}
+
+impl Repository for Git {
+    fn kind(&self) -> &'static str {
+        "git"
+    }
+
+    fn determine_repo_dir(&self) -> PathBuf {
+        self.cached_repo()
+    }
+
+    fn sync(&self) -> Result<()> {
+        let cached_repo = self.cached_repo();
+        if !cached_repo.exists() {
+            fs::create_dir_all(&cached_repo).unwrap();
+
+            // clone repo to cache dir
+            Command::new("git")
+                .args(["clone", "-q", &self.uri, cached_repo.to_str().unwrap()])
+                .status()
+                .map_err(|e| Error::Repo {
+                    name: self.to_string(),
+                    error: e.to_string(),
+                })?;
+        } else {
+            // pull repo
+            Command::new("git")
+                .args(["pull", "-q"])
+                .current_dir(&cached_repo)
+                .status()
+                .map_err(|e| Error::Repo {
+                    name: self.to_string(),
+                    error: e.to_string(),
+                })?;
+        }
+
+        Ok(())
     }
 }
