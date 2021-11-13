@@ -54,7 +54,7 @@ fn get_config(repo_dir: &Path) -> Result<PathBuf> {
     )))
 }
 
-fn main() -> Result<()> {
+fn main() -> miette::Result<()> {
     let app = App::from_args();
     let repo = new_repository(&app.template);
     let repo_dir = repo.determine_repo_dir();
