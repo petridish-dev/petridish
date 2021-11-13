@@ -33,9 +33,12 @@ struct App {
     #[structopt(
         short = "f",
         long = "force",
-        help = "Overwrite the generate project if it already exists"
+        help = "Overwrites the generate project if it already exists"
     )]
     force: bool,
+
+    #[structopt(short = "u", long = "update", help = "Updates cached repo")]
+    update: bool,
 
     #[structopt(name = "TEMPLATE", help = "The petridish template")]
     template: String,
@@ -58,8 +61,8 @@ fn main() -> miette::Result<()> {
     let app = App::from_args();
     let repo = new_repository(&app.template);
     let repo_dir = repo.determine_repo_dir();
-    if !repo_dir.exists() {
-        repo.sync()?
+    if !repo_dir.exists() || app.update {
+        repo.sync()?;
     }
     repo.validate()?;
 
