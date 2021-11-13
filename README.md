@@ -75,6 +75,9 @@ entry_dir_prompt_message: repo dir name?
 |                 | **default** | default value (default false)           |    ✅     |
 
 
+## Demo
+![](assets/demo.gif)
+
 ## Template
 
 A Tera template is just a text file where variables and expressions get replaced with values when it is rendered. The syntax is based on Jinja2 and Django templates.
