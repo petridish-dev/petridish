@@ -21,6 +21,9 @@ pub enum Error {
 
     #[error("{0}")]
     RenderError(String),
+
+    #[error("{0}")]
+    HookError(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

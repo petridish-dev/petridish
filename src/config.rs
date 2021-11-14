@@ -1,8 +1,10 @@
+use std::process::Command;
 use std::{fmt, fs, path::Path};
 
 use regex::Regex;
 use serde::{de::Visitor, Deserialize};
 use serde_yaml::Number;
+use tera::{Context, Tera};
 
 use crate::error::{Error, Result};
 
@@ -40,13 +42,33 @@ impl PromptConfig {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
+pub struct Hooks {
+    pre_command: Option<String>,
+    post_command: Option<String>,
+    #[serde(default = "default_shell")]
+    shell: String,
+    #[serde(default = "default_quiet")]
+    quiet: bool,
+}
+
+fn default_shell() -> String {
+    "bash".to_string()
+}
+
+fn default_quiet() -> bool {
+    true
+}
+
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct PromptItem {
     pub name: String,
     #[serde(default)]
     pub message: Option<String>,
     #[serde(flatten)]
     pub kind: PromptKind,
+    #[serde(default)]
+    pub hooks: Option<Hooks>,
 }
 
 impl PromptItem {
@@ -145,9 +167,85 @@ impl PromptItem {
 
         Ok(())
     }
+
+    pub fn run_pre_hook(&self, context: &Context) -> Result<()> {
+        match &self.hooks {
+            Some(Hooks {
+                pre_command: Some(pre_command),
+                post_command: _,
+                shell,
+                quiet,
+            }) => {
+                let mut tera = Tera::default();
+                let pre_command = tera.render_str(pre_command, context).map_err(|e| {
+                    Error::HookError(format!(
+                        "run '{}' pre-hook failed: {}",
+                        self.name,
+                        e.to_string()
+                    ))
+                })?;
+                let result = Command::new(&shell)
+                    .args(["-c", &pre_command])
+                    .output()
+                    .unwrap();
+
+                if result.status.success() {
+                    if !quiet {
+                        print!("{}", String::from_utf8_lossy(&result.stdout));
+                    }
+                    Ok(())
+                } else {
+                    Err(Error::HookError(format!(
+                        "run '{}' pre-hook failed: {}",
+                        self.name,
+                        String::from_utf8_lossy(&result.stderr)
+                    )))
+                }
+            }
+            _ => Ok(()),
+        }
+    }
+
+    pub fn run_post_hook(&self, context: &Context) -> Result<()> {
+        match &self.hooks {
+            Some(Hooks {
+                pre_command: _,
+                post_command: Some(post_command),
+                shell,
+                quiet,
+            }) => {
+                let mut tera = Tera::default();
+                let post_command = tera.render_str(post_command, context).map_err(|e| {
+                    Error::HookError(format!(
+                        "run '{}' pre-hook failed: {}",
+                        self.name,
+                        e.to_string()
+                    ))
+                })?;
+                let result = Command::new(&shell)
+                    .args(["-c", &post_command])
+                    .output()
+                    .unwrap();
+
+                if result.status.success() {
+                    if !quiet {
+                        print!("{}", String::from_utf8_lossy(&result.stdout));
+                    }
+                    Ok(())
+                } else {
+                    Err(Error::HookError(format!(
+                        "run '{}' post-hook failed: {}",
+                        self.name,
+                        String::from_utf8_lossy(&result.stderr)
+                    )))
+                }
+            }
+            _ => Ok(()),
+        }
+    }
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum PromptKind {
     SingleSelect(SingleSelectType),
@@ -182,28 +280,28 @@ impl fmt::Display for Value {
     }
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum SingleSelectType {
     String(SingleSelect<String>),
     Number(SingleSelect<Number>),
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum MultiSelectType {
     String(MultiSelect<String>),
     Number(MultiSelect<Number>),
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct SingleSelect<T> {
     pub default: Option<T>,
     pub choices: Vec<T>,
     pub multi: Option<LiteralFalse>,
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Clone)]
 pub struct MultiSelect<T> {
     pub default: Option<Vec<T>>,
     pub choices: Vec<T>,
@@ -212,7 +310,7 @@ pub struct MultiSelect<T> {
     pub emptyable: bool,
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct LiteralTrue;
 impl fmt::Debug for LiteralTrue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -250,7 +348,7 @@ impl<'de> Deserialize<'de> for LiteralTrue {
     }
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 pub struct LiteralFalse;
 
 impl fmt::Debug for LiteralFalse {
@@ -310,6 +408,7 @@ name: your_name
                 name: "your_name".into(),
                 message: None,
                 kind: PromptKind::Default { default: None },
+                hooks: None,
             }
         )
     }
@@ -344,6 +443,7 @@ message: What's your name
                 name: "your_name".into(),
                 message: Some("What's your name".into()),
                 kind: PromptKind::Default { default: None },
+                hooks: None,
             }
         )
     }
@@ -368,6 +468,7 @@ multi: false
                     choices: vec!["Peter".into(), "Alice".into()],
                     multi: Some(LiteralFalse {}),
                 })),
+                hooks: None,
             }
         );
 
@@ -389,6 +490,7 @@ multi: false
                     choices: vec![1.into(), 2.into()],
                     multi: Some(LiteralFalse {}),
                 })),
+                hooks: None,
             }
         );
     }
@@ -439,6 +541,7 @@ default: Peter
                     choices: vec!["Peter".into(), "Alice".into()],
                     multi: None,
                 })),
+                hooks: None,
             }
         )
     }
@@ -461,6 +564,7 @@ choices: [Peter, Alice]
                     choices: vec!["Peter".into(), "Alice".into()],
                     multi: None,
                 })),
+                hooks: None,
             }
         )
     }
@@ -486,6 +590,7 @@ multi: true
                     multi: Some(LiteralTrue {}),
                     emptyable: false,
                 })),
+                hooks: None,
             }
         );
 
@@ -508,6 +613,7 @@ multi: true
                     multi: Some(LiteralTrue {}),
                     emptyable: false,
                 })),
+                hooks: None,
             }
         );
     }
@@ -532,6 +638,7 @@ multi: true
                     multi: Some(LiteralTrue {}),
                     emptyable: false,
                 })),
+                hooks: None,
             }
         );
     }
@@ -556,6 +663,7 @@ default: [Peter]
                     multi: None,
                     emptyable: false,
                 })),
+                hooks: None,
             }
         );
     }
@@ -604,6 +712,7 @@ prompts:
                     name: "your_name".into(),
                     message: None,
                     kind: PromptKind::Default { default: None },
+                    hooks: None,
                 }],
                 entry_dir: "{{ repo_name }}".to_string(),
                 entry_dir_prompt_message: "repo dir name?".to_string(),
@@ -622,5 +731,32 @@ prompts:
             }
             _ => unreachable!(),
         }
+    }
+
+    #[test]
+    fn specify_hooks() {
+        let config = "
+name: your_name
+hooks:
+  pre_command: |-
+    echo hello world
+  post_command: |-
+    echo hello rust
+";
+        let item = serde_yaml::from_str::<PromptItem>(config).unwrap();
+        assert_eq!(
+            item,
+            PromptItem {
+                name: "your_name".into(),
+                message: None,
+                kind: PromptKind::Default { default: None },
+                hooks: Some(Hooks {
+                    pre_command: Some("echo hello world".into()),
+                    post_command: Some("echo hello rust".into()),
+                    shell: "bash".into(),
+                    quiet: true,
+                }),
+            }
+        );
     }
 }

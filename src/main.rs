@@ -106,6 +106,9 @@ fn main() -> miette::Result<()> {
     }
 
     for prompt in config.prompts {
+        prompt.run_pre_hook(&context)?;
+        // TODO: don't use cloned prompt to run post-hook
+        let cloned_prompt = prompt.clone();
         match prompt.kind {
             petridish::config::PromptKind::Default { default } => match default {
                 Some(Value::String(default)) => {
@@ -264,6 +267,7 @@ fn main() -> miette::Result<()> {
                 }
             },
         }
+        cloned_prompt.run_post_hook(&context)?;
     }
 
     let render = Render::try_new(&repo_dir, &config.entry_dir, &app.output_dir, context)?;
