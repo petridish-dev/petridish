@@ -98,6 +98,15 @@ pub enum LiteralValue {
     String(String),
 }
 
+#[derive(Deserialize, Debug, PartialEq)]
+pub struct Prompt {
+    pub name: String,
+    #[serde(default)]
+    pub prompt_message: Option<String>,
+    #[serde(flatten)]
+    pub kind: PromptKind,
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -413,6 +422,30 @@ default: a
             parsed,
             PromptKind::Literal {
                 default: Some(LiteralValue::String("a".into()))
+            }
+        )
+    }
+
+    #[test]
+    fn test_prompt() {
+        let config = "\
+---
+name: A
+prompt_message: the A is?
+choices: [1, 2, 3]
+default: 1
+";
+        let parsed = serde_yaml::from_str::<Prompt>(config).unwrap();
+        assert_eq!(
+            parsed,
+            Prompt {
+                name: "A".into(),
+                prompt_message: Some("the A is?".into()),
+                kind: PromptKind::SingleSelector(SingleSelector::Number(SingleSelectorConfig {
+                    default: Some(1_f64),
+                    choices: vec![1_f64, 2_f64, 3_f64],
+                    multi: None,
+                }))
             }
         )
     }
