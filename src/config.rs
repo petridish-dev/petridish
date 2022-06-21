@@ -1,9 +1,13 @@
 use serde::Deserialize;
 
-#[derive(Deserialize, Debug, PartialEq, Eq)]
+use crate::prompt::Prompt;
+
+#[derive(Deserialize, Debug, PartialEq)]
 pub struct Config {
     #[serde(default, rename(deserialize = ".meta"))]
     pub meta_config: MetaConfig,
+    #[serde(default)]
+    pub prompts: Vec<Prompt>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -33,9 +37,12 @@ impl Default for MetaConfig {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use serde_test::{assert_de_tokens, Token};
 
     use super::*;
+    use crate::prompt::*;
 
     #[test]
     fn test_deserialize_config() {
@@ -91,6 +98,70 @@ mod tests {
                 Token::StructEnd,
                 Token::StructEnd,
             ],
+        )
+    }
+
+    #[test]
+    fn test_deserialize_config_with_prompts() {
+        let config = "\
+---
+prompts:
+- choices: [1, 2, 3]
+  name: A
+- choices: [a, b, c]
+  default: [b]
+  name: B
+- confirm: true
+  name: C
+- name: D
+  default: hello
+";
+        let parsed = serde_yaml::from_str::<Config>(config).unwrap();
+        assert_eq!(
+            parsed,
+            Config {
+                meta_config: MetaConfig::default(),
+                prompts: vec![
+                    Prompt {
+                        name: "A".into(),
+                        prompt_message: None,
+                        kind: PromptKind::SingleSelector(SingleSelector::Number(
+                            SingleSelectorConfig {
+                                default: None,
+                                choices: vec![1_f64, 2_f64, 3_f64],
+                                multi: None,
+                            }
+                        ))
+                    },
+                    Prompt {
+                        name: "B".into(),
+                        prompt_message: None,
+                        kind: PromptKind::MultiSelector(MultiSelector::String(
+                            MultiSelectorConfig {
+                                default: Some(vec!["b".into()]),
+                                choices: vec!["a".into(), "b".into(), "c".into()],
+                                multi: None,
+                                emptyable: false
+                            }
+                        ))
+                    },
+                    Prompt {
+                        name: "C".into(),
+                        prompt_message: None,
+                        kind: PromptKind::Confirm {
+                            confirm: LiteralTrue,
+                            default: false,
+                        }
+                    },
+                    Prompt {
+                        name: "D".into(),
+                        prompt_message: None,
+                        kind: PromptKind::Literal {
+                            default: LiteralValue::String("hello".into()),
+                        }
+                    }
+                ]
+            }
         )
     }
 }
