@@ -81,6 +81,11 @@ pub struct MultiSelectorConfig<T> {
 pub enum PromptKind {
     SingleSelector(SingleSelector),
     MultiSelector(MultiSelector),
+    Confirm {
+        confirm: LiteralTrue,
+        #[serde(default)]
+        default: bool,
+    },
 }
 
 #[cfg(test)]
@@ -332,6 +337,41 @@ multi: true
                 multi: Some(LiteralTrue),
                 emptyable: false
             }))
+        )
+    }
+
+    #[test]
+    fn test_prompt_kind_for_confirm() {
+        let config = "\
+---
+confirm: true
+";
+        let parsed = serde_yaml::from_str::<PromptKind>(config).unwrap();
+
+        assert_eq!(
+            parsed,
+            PromptKind::Confirm {
+                confirm: LiteralTrue,
+                default: false
+            }
+        )
+    }
+
+    #[test]
+    fn test_prompt_kind_for_confirm_with_default() {
+        let config = "\
+---
+confirm: true
+default: true
+";
+        let parsed = serde_yaml::from_str::<PromptKind>(config).unwrap();
+
+        assert_eq!(
+            parsed,
+            PromptKind::Confirm {
+                confirm: LiteralTrue,
+                default: true
+            }
         )
     }
 }
