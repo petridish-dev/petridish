@@ -87,7 +87,7 @@ pub enum PromptKind {
         default: bool,
     },
     Literal {
-        default: Option<LiteralValue>,
+        default: LiteralValue,
     },
 }
 
@@ -405,7 +405,7 @@ default: 1
         assert_eq!(
             parsed,
             PromptKind::Literal {
-                default: Some(LiteralValue::Number(1_f64))
+                default: LiteralValue::Number(1_f64)
             }
         )
     }
@@ -421,7 +421,7 @@ default: a
         assert_eq!(
             parsed,
             PromptKind::Literal {
-                default: Some(LiteralValue::String("a".into()))
+                default: LiteralValue::String("a".into())
             }
         )
     }
