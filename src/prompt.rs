@@ -86,6 +86,16 @@ pub enum PromptKind {
         #[serde(default)]
         default: bool,
     },
+    Literal {
+        default: Option<LiteralValue>,
+    },
+}
+
+#[derive(Deserialize, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum LiteralValue {
+    Number(f64),
+    String(String),
 }
 
 #[cfg(test)]
@@ -371,6 +381,38 @@ default: true
             PromptKind::Confirm {
                 confirm: LiteralTrue,
                 default: true
+            }
+        )
+    }
+
+    #[test]
+    fn test_prompt_kind_for_literal_number() {
+        let config = "\
+---
+default: 1
+";
+        let parsed = serde_yaml::from_str::<PromptKind>(config).unwrap();
+
+        assert_eq!(
+            parsed,
+            PromptKind::Literal {
+                default: Some(LiteralValue::Number(1_f64))
+            }
+        )
+    }
+
+    #[test]
+    fn test_prompt_kind_for_literal_string() {
+        let config = "\
+---
+default: a
+";
+        let parsed = serde_yaml::from_str::<PromptKind>(config).unwrap();
+
+        assert_eq!(
+            parsed,
+            PromptKind::Literal {
+                default: Some(LiteralValue::String("a".into()))
             }
         )
     }
