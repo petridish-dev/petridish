@@ -16,3 +16,4 @@ regex = "1"
 
 [dev-dependencies]
 serde_test = "1"
+serde_json = "1.0"

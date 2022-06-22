@@ -55,19 +55,19 @@ mod tests {
     fn test_literal_true() {
         assert_eq!(format!("{:?}", LiteralTrue), "true");
         assert_eq!(
-            serde_yaml::from_str::<LiteralTrue>("true").unwrap(),
+            serde_json::from_str::<LiteralTrue>("true").unwrap(),
             LiteralTrue
         );
-        assert!(serde_yaml::from_str::<LiteralTrue>("false").is_err())
+        assert!(serde_json::from_str::<LiteralTrue>("false").is_err())
     }
 
     #[test]
     fn test_literal_false() {
         assert_eq!(format!("{:?}", LiteralFalse), "false");
         assert_eq!(
-            serde_yaml::from_str::<LiteralFalse>("false").unwrap(),
+            serde_json::from_str::<LiteralFalse>("false").unwrap(),
             LiteralFalse
         );
-        assert!(serde_yaml::from_str::<LiteralFalse>("true").is_err())
+        assert!(serde_json::from_str::<LiteralFalse>("true").is_err())
     }
 }
