@@ -13,6 +13,10 @@ serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.8"
 tera = "1"
 regex = "1"
+validator = { version = "0.15", features = ["derive"] }
+ariadne = "0.1.5"
+toml = "0.5"
+toml-spanned-value = "0.1.0"
 
 [dev-dependencies]
 serde_test = "1"
