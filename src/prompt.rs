@@ -4,6 +4,7 @@ use crate::{literal_str, literal_value::LiteralTrue};
 
 literal_str!("str", LiteralStr);
 literal_str!("number", LiteralNumber);
+literal_str!("bool", LiteralBool);
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
@@ -65,7 +66,8 @@ pub enum PromptKind {
     MultiSelector(MultiSelector),
     SingleSelector(SingleSelector),
     Confirm {
-        confirm: LiteralTrue,
+        #[serde(rename = "type")]
+        type_name: LiteralBool,
         #[serde(default)]
         default: bool,
     },
@@ -243,22 +245,22 @@ default="abc"
 
     test_prompt! {test_confirm, r#"
 prompt="ok?"
-confirm=true
+type="bool"
 "#, Prompt { 
     prompt: Some("ok?".into()),
     kind: PromptKind::Confirm{
-        confirm: LiteralTrue,
+        type_name: LiteralBool,
         default: false
     }}}
 
     test_prompt! {test_confirm_with_default, r#"
 prompt="ok?"
-confirm=true
+type="bool"
 default=true
 "#, Prompt { 
     prompt: Some("ok?".into()),
     kind: PromptKind::Confirm{
-        confirm: LiteralTrue,
+        type_name: LiteralBool,
         default: true
     }}}
 
