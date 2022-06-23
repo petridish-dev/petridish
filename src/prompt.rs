@@ -1,80 +1,66 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use crate::{literal_str, literal_value::LiteralTrue};
+use crate::literal_value::LiteralTrue;
 
-literal_str!("str", LiteralStr);
-literal_str!("number", LiteralNumber);
-literal_str!("bool", LiteralBool);
-
-#[derive(Deserialize, Debug, PartialEq)]
-#[serde(untagged)]
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum Normal {
     String {
-        #[serde(rename = "type")]
-        type_name: LiteralStr,
         regex: Option<String>,
         default: Option<String>,
     },
     Number {
-        #[serde(rename = "type")]
-        type_name: LiteralNumber,
         min: Option<f64>,
         max: Option<f64>,
         default: Option<f64>,
     },
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
-#[serde(untagged)]
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum SingleSelector {
     String {
-        #[serde(rename = "type")]
-        type_name: LiteralStr,
         choices: Vec<String>,
         default: Option<String>,
     },
     Number {
-        #[serde(rename = "type")]
-        type_name: LiteralNumber,
         choices: Vec<f64>,
         default: Option<f64>,
     },
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
-#[serde(untagged)]
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum MultiSelector {
     String {
-        #[serde(rename = "type")]
-        type_name: LiteralStr,
         choices: Vec<String>,
         default: Option<Vec<String>>,
         multi: LiteralTrue,
     },
     Number {
-        #[serde(rename = "type")]
-        type_name: LiteralNumber,
         choices: Vec<f64>,
         default: Option<Vec<f64>>,
         multi: LiteralTrue,
     },
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
+#[serde(tag = "type")]
+pub struct Confirm {
+    #[serde(default)]
+    default: bool,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum PromptKind {
     MultiSelector(MultiSelector),
     SingleSelector(SingleSelector),
-    Confirm {
-        #[serde(rename = "type")]
-        type_name: LiteralBool,
-        #[serde(default)]
-        default: bool,
-    },
     Normal(Normal),
+    Confirm(Confirm),
 }
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
 pub struct Prompt {
     pub prompt: Option<String>,
     #[serde(flatten)]
@@ -102,7 +88,6 @@ type="number"
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::Number {
-            type_name: LiteralNumber,
             max: None,
             min: None,
             default: None
@@ -113,11 +98,10 @@ type="number"
 prompt="hello"
 type="number"
 default=1
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::Number {
-            type_name: LiteralNumber,
             max: None,
             min: None,
             default: Some(1_f64),
@@ -128,11 +112,10 @@ default=1
 prompt="hello"
 type="number"
 max=1
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::Number {
-            type_name: LiteralNumber,
             max: Some(1_f64),
             min: None,
             default: None,
@@ -143,11 +126,10 @@ max=1
 prompt="hello"
 type="number"
 min=1
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::Number {
-            type_name: LiteralNumber,
             max: None,
             min: Some(1_f64),
             default: None,
@@ -159,11 +141,10 @@ prompt="hello"
 type="number"
 min=1
 max=2
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::Number {
-            type_name: LiteralNumber,
             max: Some(2_f64),
             min: Some(1_f64),
             default: None,
@@ -176,11 +157,10 @@ type="number"
 min=1
 max=2
 default=1
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::Number {
-            type_name: LiteralNumber,
             max: Some(2_f64),
             min: Some(1_f64),
             default: Some(1_f64),
@@ -189,12 +169,11 @@ default=1
 
     test_prompt! {test_literal_str, r#"
 prompt="hello"
-type="str"
-"#, Prompt { 
+type="string"
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::String {
-            type_name: LiteralStr,
             regex: None,
             default: None
         }
@@ -202,13 +181,12 @@ type="str"
 
     test_prompt! {test_literal_str_with_default, r#"
 prompt="hello"
-type="str"
+type="string"
 default="abc"
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::String {
-            type_name: LiteralStr,
             regex: None,
             default: Some("abc".into())
         }
@@ -216,13 +194,12 @@ default="abc"
 
     test_prompt! {test_literal_str_with_regex, r#"
 prompt="hello"
-type="str"
+type="string"
 regex="abc"
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::String {
-            type_name: LiteralStr,
             regex: Some("abc".into()),
             default: None
         }
@@ -230,14 +207,13 @@ regex="abc"
 
     test_prompt! {test_literal_str_with_regex_and_default, r#"
 prompt="hello"
-type="str"
+type="string"
 regex="a.*c"
 default="abc"
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("hello".into()),
     kind: PromptKind::Normal(
         Normal::String {
-            type_name: LiteralStr,
             regex: Some("a.*c".into()),
             default: Some("abc".into()),
         }
@@ -246,33 +222,26 @@ default="abc"
     test_prompt! {test_confirm, r#"
 prompt="ok?"
 type="bool"
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("ok?".into()),
-    kind: PromptKind::Confirm{
-        type_name: LiteralBool,
-        default: false
-    }}}
+    kind: PromptKind::Confirm(Confirm{default: false})}}
 
     test_prompt! {test_confirm_with_default, r#"
 prompt="ok?"
 type="bool"
 default=true
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("ok?".into()),
-    kind: PromptKind::Confirm{
-        type_name: LiteralBool,
-        default: true
-    }}}
+    kind: PromptKind::Confirm(Confirm{default: true})}}
 
     test_prompt! {test_number_single_choice, r#"
 prompt="age"
 choices=[1, 2, 3]
 type="number"
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("age".into()),
     kind: PromptKind::SingleSelector(
         SingleSelector::Number{
-            type_name: LiteralNumber,
             choices: vec![1_f64, 2_f64, 3_f64],
             default: None,
         })
@@ -283,11 +252,10 @@ prompt="age"
 choices=[1, 2, 3]
 type="number"
 default=1
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("age".into()),
     kind: PromptKind::SingleSelector(
         SingleSelector::Number{
-            type_name: LiteralNumber,
             choices: vec![1_f64, 2_f64, 3_f64],
             default: Some(1_f64),
         })
@@ -296,12 +264,11 @@ default=1
     test_prompt! {test_str_single_choice, r#"
 prompt="name"
 choices=["a", "b", "c"]
-type="str"
-"#, Prompt { 
+type="string"
+"#, Prompt {
     prompt: Some("name".into()),
     kind: PromptKind::SingleSelector(
         SingleSelector::String{
-            type_name: LiteralStr,
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: None,
         })
@@ -310,13 +277,12 @@ type="str"
     test_prompt! {test_str_single_choice_with_default, r#"
 prompt="name"
 choices=["a", "b", "c"]
-type="str"
+type="string"
 default="a"
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("name".into()),
     kind: PromptKind::SingleSelector(
         SingleSelector::String{
-            type_name: LiteralStr,
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: Some("a".into()),
         })
@@ -327,11 +293,10 @@ prompt="age"
 choices=[1, 2, 3]
 type="number"
 multi=true
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("age".into()),
     kind: PromptKind::MultiSelector(
         MultiSelector::Number{
-            type_name: LiteralNumber,
             choices: vec![1_f64, 2_f64, 3_f64],
             default: None,
             multi: LiteralTrue,
@@ -344,11 +309,10 @@ choices=[1, 2, 3]
 type="number"
 default=[1]
 multi=true
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("age".into()),
     kind: PromptKind::MultiSelector(
         MultiSelector::Number{
-            type_name: LiteralNumber,
             choices: vec![1_f64, 2_f64, 3_f64],
             default: Some(vec![1_f64]),
             multi: LiteralTrue,
@@ -358,13 +322,12 @@ multi=true
     test_prompt! {test_str_multi_choices, r#"
 prompt="name"
 choices=["a", "b", "c"]
-type="str"
+type="string"
 multi=true
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("name".into()),
     kind: PromptKind::MultiSelector(
         MultiSelector::String{
-            type_name: LiteralStr,
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: None,
             multi: LiteralTrue,
@@ -374,14 +337,13 @@ multi=true
     test_prompt! {test_str_multi_choices_with_default, r#"
 prompt="name"
 choices=["a", "b", "c"]
-type="str"
+type="string"
 default=["a"]
 multi=true
-"#, Prompt { 
+"#, Prompt {
     prompt: Some("name".into()),
     kind: PromptKind::MultiSelector(
         MultiSelector::String{
-            type_name: LiteralStr,
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: Some(vec!["a".into()]),
             multi: LiteralTrue,
