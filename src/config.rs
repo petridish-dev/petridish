@@ -1,9 +1,15 @@
+use std::collections::BTreeMap;
+
 use serde::Deserialize;
+
+use crate::prompt::Prompt;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Config {
     #[serde(default, rename(deserialize = "meta"))]
     pub meta_config: MetaConfig,
+    #[serde(default)]
+    pub prompts: BTreeMap<String, Prompt>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -33,6 +39,8 @@ impl Default for MetaConfig {
 
 #[cfg(test)]
 mod tests {
+    use crate::{literal_value::LiteralTrue, prompt::*};
+
     use super::*;
 
     #[test]
@@ -49,7 +57,8 @@ project_var_name = "project"
                 meta_config: MetaConfig {
                     project_prompt: "what's your project name?".into(),
                     project_var_name: "project".into()
-                }
+                },
+                prompts: BTreeMap::new(),
             }
         );
     }
@@ -64,7 +73,120 @@ project_var_name = "project"
                 meta_config: MetaConfig {
                     project_prompt: "project name?".into(),
                     project_var_name: "project_name".into()
-                }
+                },
+                prompts: BTreeMap::new(),
+            }
+        )
+    }
+
+    #[test]
+    fn test_deserialize_config_with_prompts() {
+        let config = r#"
+[meta]
+project_prompt = "what's your project name?"
+project_var_name = "project"
+
+[prompts.name]
+prompt = "what's your name?"
+type = "str"
+
+[prompts.age]
+prompt = "what's your age?"
+type = "number"
+max = 150
+
+[prompts.love_rust]
+prompt = "do you love rust?"
+type = "bool"
+default = true
+
+[prompts.hobbies]
+prompt = "what's your hobbies?"
+type = "str"
+choices = ["swimming", "running", "reading"]
+multi = true
+
+[prompts.country]
+prompt = "what's your nationality?"
+type = "str"
+choices = ["Chinese", "American", "Japanese"]
+"#;
+        let parsed = toml::from_str::<Config>(config).unwrap();
+        assert_eq!(
+            parsed,
+            Config {
+                meta_config: MetaConfig {
+                    project_prompt: "what's your project name?".into(),
+                    project_var_name: "project".into()
+                },
+                prompts: [
+                    (
+                        "name".into(),
+                        Prompt {
+                            prompt: Some("what's your name?".into()),
+                            kind: PromptKind::Normal(Normal::String {
+                                type_name: LiteralStr,
+                                default: None,
+                                regex: None,
+                            })
+                        }
+                    ),
+                    (
+                        "age".into(),
+                        Prompt {
+                            prompt: Some("what's your age?".into()),
+                            kind: PromptKind::Normal(Normal::Number {
+                                type_name: LiteralNumber,
+                                default: None,
+                                max: Some(150_f64),
+                                min: None,
+                            })
+                        }
+                    ),
+                    (
+                        "love_rust".into(),
+                        Prompt {
+                            prompt: Some("do you love rust?".into()),
+                            kind: PromptKind::Confirm {
+                                type_name: LiteralBool,
+                                default: true,
+                            }
+                        }
+                    ),
+                    (
+                        "hobbies".into(),
+                        Prompt {
+                            prompt: Some("what's your hobbies?".into()),
+                            kind: PromptKind::MultiSelector(MultiSelector::String {
+                                type_name: LiteralStr,
+                                choices: vec![
+                                    "swimming".into(),
+                                    "running".into(),
+                                    "reading".into()
+                                ],
+                                default: None,
+                                multi: LiteralTrue,
+                            })
+                        }
+                    ),
+                    (
+                        "country".into(),
+                        Prompt {
+                            prompt: Some("what's your nationality?".into()),
+                            kind: PromptKind::SingleSelector(SingleSelector::String {
+                                type_name: LiteralStr,
+                                choices: vec![
+                                    "Chinese".into(),
+                                    "American".into(),
+                                    "Japanese".into()
+                                ],
+                                default: None,
+                            })
+                        }
+                    ),
+                ]
+                .into_iter()
+                .collect(),
             }
         )
     }
