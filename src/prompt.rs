@@ -4,60 +4,53 @@ use crate::literal_value::LiteralTrue;
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
-pub enum Normal {
-    String {
-        regex: Option<String>,
-        default: Option<String>,
-    },
-    Number {
-        min: Option<f64>,
-        max: Option<f64>,
-        default: Option<f64>,
-    },
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum SingleSelector {
-    String {
-        choices: Vec<String>,
-        default: Option<String>,
-    },
-    Number {
-        choices: Vec<f64>,
-        default: Option<f64>,
-    },
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum MultiSelector {
-    String {
-        choices: Vec<String>,
-        default: Option<Vec<String>>,
-        multi: LiteralTrue,
-    },
-    Number {
-        choices: Vec<f64>,
-        default: Option<Vec<f64>>,
-        multi: LiteralTrue,
-    },
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-#[serde(tag = "type")]
-pub struct Confirm {
-    #[serde(default)]
-    default: bool,
+pub enum PromptKind {
+    String(StringPrompt),
+    Number(NumberPrompt),
+    Bool(BoolPrompt),
 }
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
-pub enum PromptKind {
-    MultiSelector(MultiSelector),
-    SingleSelector(SingleSelector),
-    Normal(Normal),
-    Confirm(Confirm),
+pub enum StringPrompt {
+    MultiSelector {
+        multi: LiteralTrue,
+        choices: Vec<String>,
+        default: Option<Vec<String>>,
+    },
+    SingleSelector {
+        choices: Vec<String>,
+        default: Option<String>,
+    },
+    Normal {
+        default: Option<String>,
+        regex: Option<String>,
+    },
+}
+
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
+#[serde(untagged)]
+pub enum NumberPrompt {
+    MultiSelector {
+        multi: LiteralTrue,
+        choices: Vec<f64>,
+        default: Option<Vec<f64>>,
+    },
+    SingleSelector {
+        choices: Vec<f64>,
+        default: Option<f64>,
+    },
+    Normal {
+        default: Option<f64>,
+        min: Option<f64>,
+        max: Option<f64>,
+    },
+}
+
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
+pub struct BoolPrompt {
+    #[serde(default)]
+    default: bool,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
@@ -86,8 +79,8 @@ prompt="hello"
 type="number"
 "#, Prompt { 
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::Number {
+    kind: PromptKind::Number(
+        NumberPrompt::Normal {
             max: None,
             min: None,
             default: None
@@ -100,8 +93,8 @@ type="number"
 default=1
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::Number {
+    kind: PromptKind::Number(
+        NumberPrompt::Normal {
             max: None,
             min: None,
             default: Some(1_f64),
@@ -114,8 +107,8 @@ type="number"
 max=1
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::Number {
+    kind: PromptKind::Number(
+        NumberPrompt::Normal {
             max: Some(1_f64),
             min: None,
             default: None,
@@ -128,8 +121,8 @@ type="number"
 min=1
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::Number {
+    kind: PromptKind::Number(
+        NumberPrompt::Normal {
             max: None,
             min: Some(1_f64),
             default: None,
@@ -143,8 +136,8 @@ min=1
 max=2
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::Number {
+    kind: PromptKind::Number(
+        NumberPrompt::Normal {
             max: Some(2_f64),
             min: Some(1_f64),
             default: None,
@@ -159,8 +152,8 @@ max=2
 default=1
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::Number {
+    kind: PromptKind::Number(
+        NumberPrompt::Normal {
             max: Some(2_f64),
             min: Some(1_f64),
             default: Some(1_f64),
@@ -172,8 +165,8 @@ prompt="hello"
 type="string"
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::String {
+    kind: PromptKind::String(
+        StringPrompt::Normal {
             regex: None,
             default: None
         }
@@ -185,8 +178,8 @@ type="string"
 default="abc"
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::String {
+    kind: PromptKind::String(
+        StringPrompt::Normal {
             regex: None,
             default: Some("abc".into())
         }
@@ -198,8 +191,8 @@ type="string"
 regex="abc"
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::String {
+    kind: PromptKind::String(
+        StringPrompt::Normal {
             regex: Some("abc".into()),
             default: None
         }
@@ -212,8 +205,8 @@ regex="a.*c"
 default="abc"
 "#, Prompt {
     prompt: Some("hello".into()),
-    kind: PromptKind::Normal(
-        Normal::String {
+    kind: PromptKind::String(
+        StringPrompt::Normal {
             regex: Some("a.*c".into()),
             default: Some("abc".into()),
         }
@@ -224,7 +217,8 @@ prompt="ok?"
 type="bool"
 "#, Prompt {
     prompt: Some("ok?".into()),
-    kind: PromptKind::Confirm(Confirm{default: false})}}
+    kind: PromptKind::Bool(BoolPrompt {default: false})}
+    }
 
     test_prompt! {test_confirm_with_default, r#"
 prompt="ok?"
@@ -232,7 +226,8 @@ type="bool"
 default=true
 "#, Prompt {
     prompt: Some("ok?".into()),
-    kind: PromptKind::Confirm(Confirm{default: true})}}
+    kind: PromptKind::Bool(BoolPrompt {default: true})}
+    }
 
     test_prompt! {test_number_single_choice, r#"
 prompt="age"
@@ -240,8 +235,8 @@ choices=[1, 2, 3]
 type="number"
 "#, Prompt {
     prompt: Some("age".into()),
-    kind: PromptKind::SingleSelector(
-        SingleSelector::Number{
+    kind: PromptKind::Number(
+        NumberPrompt::SingleSelector{
             choices: vec![1_f64, 2_f64, 3_f64],
             default: None,
         })
@@ -254,8 +249,8 @@ type="number"
 default=1
 "#, Prompt {
     prompt: Some("age".into()),
-    kind: PromptKind::SingleSelector(
-        SingleSelector::Number{
+    kind: PromptKind::Number(
+        NumberPrompt::SingleSelector{
             choices: vec![1_f64, 2_f64, 3_f64],
             default: Some(1_f64),
         })
@@ -267,8 +262,8 @@ choices=["a", "b", "c"]
 type="string"
 "#, Prompt {
     prompt: Some("name".into()),
-    kind: PromptKind::SingleSelector(
-        SingleSelector::String{
+    kind: PromptKind::String(
+        StringPrompt::SingleSelector{
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: None,
         })
@@ -281,8 +276,8 @@ type="string"
 default="a"
 "#, Prompt {
     prompt: Some("name".into()),
-    kind: PromptKind::SingleSelector(
-        SingleSelector::String{
+    kind: PromptKind::String(
+        StringPrompt::SingleSelector{
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: Some("a".into()),
         })
@@ -295,8 +290,8 @@ type="number"
 multi=true
 "#, Prompt {
     prompt: Some("age".into()),
-    kind: PromptKind::MultiSelector(
-        MultiSelector::Number{
+    kind: PromptKind::Number(
+        NumberPrompt::MultiSelector{
             choices: vec![1_f64, 2_f64, 3_f64],
             default: None,
             multi: LiteralTrue,
@@ -311,8 +306,8 @@ default=[1]
 multi=true
 "#, Prompt {
     prompt: Some("age".into()),
-    kind: PromptKind::MultiSelector(
-        MultiSelector::Number{
+    kind: PromptKind::Number(
+        NumberPrompt::MultiSelector{
             choices: vec![1_f64, 2_f64, 3_f64],
             default: Some(vec![1_f64]),
             multi: LiteralTrue,
@@ -326,8 +321,8 @@ type="string"
 multi=true
 "#, Prompt {
     prompt: Some("name".into()),
-    kind: PromptKind::MultiSelector(
-        MultiSelector::String{
+    kind: PromptKind::String(
+        StringPrompt::MultiSelector{
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: None,
             multi: LiteralTrue,
@@ -342,8 +337,8 @@ default=["a"]
 multi=true
 "#, Prompt {
     prompt: Some("name".into()),
-    kind: PromptKind::MultiSelector(
-        MultiSelector::String{
+    kind: PromptKind::String(
+        StringPrompt::MultiSelector{
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: Some(vec!["a".into()]),
             multi: LiteralTrue,
