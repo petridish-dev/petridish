@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize, Serializer};
 
 macro_rules! literal_bool {
     ($src:literal, $dst:ident) => {
@@ -8,6 +8,15 @@ macro_rules! literal_bool {
         impl std::fmt::Debug for $dst {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", $src)
+            }
+        }
+
+        impl Serialize for $dst {
+            fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+            where
+                S: Serializer,
+            {
+                serializer.serialize_bool($src)
             }
         }
 
@@ -106,7 +115,8 @@ mod tests {
             serde_json::from_str::<LiteralTrue>("true").unwrap(),
             LiteralTrue
         );
-        assert!(serde_json::from_str::<LiteralTrue>("false").is_err())
+        assert!(serde_json::from_str::<LiteralTrue>("false").is_err());
+        assert_eq!(serde_json::to_string(&LiteralTrue).unwrap(), "true");
     }
 
     #[test]
@@ -116,7 +126,8 @@ mod tests {
             serde_json::from_str::<LiteralFalse>("false").unwrap(),
             LiteralFalse
         );
-        assert!(serde_json::from_str::<LiteralFalse>("true").is_err())
+        assert!(serde_json::from_str::<LiteralFalse>("true").is_err());
+        assert_eq!(serde_json::to_string(&LiteralFalse).unwrap(), "false");
     }
 
     #[test]
