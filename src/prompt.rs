@@ -50,7 +50,7 @@ pub enum NumberPrompt {
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
 pub struct BoolPrompt {
     #[serde(default)]
-    default: bool,
+    pub default: bool,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
