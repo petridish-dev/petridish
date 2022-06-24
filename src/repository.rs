@@ -23,7 +23,7 @@ pub trait Repository {
 struct Git {
     url: String,
     branch: Option<String>,
-    auth: Option<GitAuth>,
+    auth: Option<Auth>,
 }
 
 impl Git {
@@ -57,7 +57,7 @@ impl Git {
             return Err(Error::InvalidRepo("git `username` is not provided".into()));
         }
         let auth = if let (Some(username), Some(password)) = (username, password) {
-            Some(GitAuth { username, password })
+            Some(Auth { username, password })
         } else {
             None
         };
@@ -121,7 +121,7 @@ impl Repository for Git {
 }
 
 #[derive(Debug, PartialEq)]
-struct GitAuth {
+struct Auth {
     pub username: String,
     pub password: String,
 }
@@ -198,7 +198,7 @@ mod tests {
             Git {
                 url: "http://abc/hello.git".into(),
                 branch: None,
-                auth: Some(GitAuth {
+                auth: Some(Auth {
                     username: "user1".into(),
                     password: "abc".into()
                 })
