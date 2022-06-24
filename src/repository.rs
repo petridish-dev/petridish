@@ -90,7 +90,7 @@ impl Git {
             .trim_end_matches(".git");
 
         let provider_url = context
-            .remove(&format!("{}_alias", alias))
+            .remove(&format!("{}_provider", alias))
             .unwrap_or(provider_url.into());
 
         let url = if head == alias || head == format!("{}+https", alias) {
@@ -336,6 +336,22 @@ mod tests {
             repo,
             Git {
                 url: "git@gitlab.com:rust-lang/rust.git".into(),
+                branch: None,
+                auth: None
+            }
+        );
+    }
+
+    #[test]
+    fn test_override_git_provider() {
+        let url = "gl+ssh:rust-lang/rust";
+        let mut context = HashMap::new();
+        context.insert("gl_provider".to_string(), "gitlab.cn.com".to_string());
+        let repo = Git::try_new(url.into(), context).unwrap();
+        assert_eq!(
+            repo,
+            Git {
+                url: "git@gitlab.cn.com:rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
             }
