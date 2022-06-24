@@ -4,34 +4,46 @@ use regex::Regex;
 
 use crate::error::{Error, Result};
 
-#[derive(Debug, PartialEq)]
-pub enum Repository {
-    LocalDir(PathBuf),
-    Git {
-        url: String,
-        branch: Option<String>,
-        auth: Option<GitAuth>,
-    },
+pub fn try_new_repo(repo: String, context: HashMap<String, String>) -> Result<Box<dyn Repository>> {
+    if Git::check_match(&repo) {
+        let repo = Git::try_new(repo, context)?;
+        return Ok(Box::new(repo));
+    }
+
+    let local_repo = LocalPath(repo.into());
+    Ok(Box::new(local_repo))
+}
+
+pub trait Repository {
+    fn download(&self, cache_dir: PathBuf) -> Result<()>;
+    fn repo_dir(&self) -> PathBuf;
 }
 
 #[derive(Debug, PartialEq)]
-pub struct GitAuth {
-    pub username: String,
-    pub password: String,
+struct Git {
+    url: String,
+    branch: Option<String>,
+    auth: Option<GitAuth>,
 }
 
-impl Repository {
-    pub fn try_new(repo: String, context: HashMap<String, String>) -> Result<Self> {
+impl Git {
+    fn check_match(repo: &str) -> bool {
+        repo.ends_with(".git") || Regex::new(r"^g(h|l).*:.*(\.git)?").unwrap().is_match(repo)
+    }
+
+    fn try_new(repo: String, context: HashMap<String, String>) -> Result<Self> {
         if Regex::new("^gh.*:.*").unwrap().is_match(&repo) {
-            return Repository::new_alias_git(repo, context, "gh", "github", "github.com");
+            return Git::new_alias_git(repo, context, "gh", "github", "github.com");
         } else if Regex::new("^gl.*:.*").unwrap().is_match(&repo) {
-            return Repository::new_alias_git(repo, context, "gl", "gitlab", "gitlab.com");
+            return Git::new_alias_git(repo, context, "gl", "gitlab", "gitlab.com");
         } else if repo.ends_with(".git") {
-            return Repository::new_git(repo, context);
+            return Git::new_git(repo, context);
         }
 
-        // local path
-        Ok(Self::LocalDir(repo.into()))
+        Err(Error::InvalidRepo(format!(
+            "'{}' is invalid git repo",
+            repo
+        )))
     }
 
     fn new_git(repo: String, mut context: HashMap<String, String>) -> Result<Self> {
@@ -51,7 +63,7 @@ impl Repository {
         };
 
         if repo.starts_with("https://") || repo.starts_with("http://") || repo.starts_with("git@") {
-            Ok(Repository::Git {
+            Ok(Self {
                 url: repo,
                 branch,
                 auth,
@@ -98,6 +110,35 @@ impl Repository {
     }
 }
 
+impl Repository for Git {
+    fn download(&self, _cache_dir: PathBuf) -> Result<()> {
+        todo!()
+    }
+
+    fn repo_dir(&self) -> PathBuf {
+        todo!()
+    }
+}
+
+#[derive(Debug, PartialEq)]
+struct GitAuth {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Debug, PartialEq)]
+struct LocalPath(PathBuf);
+
+impl Repository for LocalPath {
+    fn download(&self, _cache_dir: PathBuf) -> Result<()> {
+        Ok(())
+    }
+
+    fn repo_dir(&self) -> PathBuf {
+        self.0.clone()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -105,10 +146,10 @@ mod tests {
     #[test]
     fn test_normal_git_repo() {
         let url = "http://abc/hello.git";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "http://abc/hello.git".into(),
                 branch: None,
                 auth: None
@@ -121,10 +162,10 @@ mod tests {
         let url = "http://abc/hello.git";
         let mut context = HashMap::new();
         context.insert("branch".to_string(), "dev".to_string());
-        let repo = Repository::try_new(url.into(), context).unwrap();
+        let repo = Git::try_new(url.into(), context).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "http://abc/hello.git".into(),
                 branch: Some("dev".into()),
                 auth: None
@@ -138,10 +179,10 @@ mod tests {
         let mut context = HashMap::new();
         context.insert("username".to_string(), "user1".to_string());
         context.insert("password".to_string(), "abc".to_string());
-        let repo = Repository::try_new(url.into(), context).unwrap();
+        let repo = Git::try_new(url.into(), context).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "http://abc/hello.git".into(),
                 branch: None,
                 auth: Some(GitAuth {
@@ -155,9 +196,7 @@ mod tests {
     #[test]
     fn test_invalid_git_repo() {
         let url = "httpx://abc/hello.git";
-        let err = Repository::try_new(url.into(), HashMap::new())
-            .err()
-            .unwrap();
+        let err = Git::try_new(url.into(), HashMap::new()).err().unwrap();
         assert_eq!(
             err,
             Error::InvalidRepo("'httpx://abc/hello.git' is invalid git repo".into())
@@ -167,10 +206,10 @@ mod tests {
     #[test]
     fn test_github() {
         let url = "gh:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "https://github.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -181,10 +220,10 @@ mod tests {
     #[test]
     fn test_github_with_suffix() {
         let url = "gh:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "https://github.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -195,10 +234,10 @@ mod tests {
     #[test]
     fn test_https_github() {
         let url = "gh+https:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "https://github.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -209,10 +248,10 @@ mod tests {
     #[test]
     fn test_http_github() {
         let url = "gh+http:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "http://github.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -223,10 +262,10 @@ mod tests {
     #[test]
     fn test_ssh_github() {
         let url = "gh+ssh:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "git@github.com:rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -237,10 +276,10 @@ mod tests {
     #[test]
     fn test_gitlab() {
         let url = "gl:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "https://gitlab.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -251,10 +290,10 @@ mod tests {
     #[test]
     fn test_https_gitlab() {
         let url = "gl+https:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "https://gitlab.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -265,10 +304,10 @@ mod tests {
     #[test]
     fn test_http_gitlab() {
         let url = "gl+http:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "http://gitlab.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -279,10 +318,10 @@ mod tests {
     #[test]
     fn test_ssh_gitlab() {
         let url = "gl+ssh:rust-lang/rust";
-        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        let repo = Git::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
             repo,
-            Repository::Git {
+            Git {
                 url: "git@gitlab.com:rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
