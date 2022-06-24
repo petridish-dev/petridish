@@ -6,14 +6,14 @@ use crate::prompt::Prompt;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Config {
-    #[serde(default, rename(deserialize = "meta"))]
-    pub meta_config: MetaConfig,
+    #[serde(default, rename(deserialize = "petridish"))]
+    pub petridish_config: PetridishConfig,
     #[serde(default)]
     pub prompts: BTreeMap<String, Prompt>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
-pub struct MetaConfig {
+pub struct PetridishConfig {
     #[serde(default = "default_prompt_message_for_project_name")]
     pub project_prompt: String,
     #[serde(default = "default_project_var_name")]
@@ -28,7 +28,7 @@ fn default_project_var_name() -> String {
     "project_name".into()
 }
 
-impl Default for MetaConfig {
+impl Default for PetridishConfig {
     fn default() -> Self {
         Self {
             project_prompt: default_prompt_message_for_project_name(),
@@ -45,7 +45,7 @@ mod tests {
     #[test]
     fn test_deserialize_config() {
         let config = r#"
-[meta]
+[petridish]
 project_prompt = "what's your project name?"
 project_var_name = "project"
 "#;
@@ -53,7 +53,7 @@ project_var_name = "project"
         assert_eq!(
             parsed,
             Config {
-                meta_config: MetaConfig {
+                petridish_config: PetridishConfig {
                     project_prompt: "what's your project name?".into(),
                     project_var_name: "project".into()
                 },
@@ -69,7 +69,7 @@ project_var_name = "project"
         assert_eq!(
             parsed,
             Config {
-                meta_config: MetaConfig {
+                petridish_config: PetridishConfig {
                     project_prompt: "project name?".into(),
                     project_var_name: "project_name".into()
                 },
@@ -81,7 +81,7 @@ project_var_name = "project"
     #[test]
     fn test_deserialize_config_with_prompts() {
         let config = r#"
-[meta]
+[petridish]
 project_prompt = "what's your project name?"
 project_var_name = "project"
 
@@ -114,7 +114,7 @@ choices = ["Chinese", "American", "Japanese"]
         assert_eq!(
             parsed,
             Config {
-                meta_config: MetaConfig {
+                petridish_config: PetridishConfig {
                     project_prompt: "what's your project name?".into(),
                     project_var_name: "project".into()
                 },
