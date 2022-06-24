@@ -10,7 +10,7 @@ pub fn try_new_repo(repo: String, context: HashMap<String, String>) -> Result<Bo
         return Ok(Box::new(repo));
     }
 
-    let local_repo = LocalPath(repo.into());
+    let local_repo = LocalPath::try_new(repo.into())?;
     Ok(Box::new(local_repo))
 }
 
@@ -128,6 +128,19 @@ struct GitAuth {
 
 #[derive(Debug, PartialEq)]
 struct LocalPath(PathBuf);
+
+impl LocalPath {
+    fn try_new(repo: PathBuf) -> Result<Self> {
+        if !repo.exists() {
+            Err(Error::InvalidRepo(format!(
+                "not found dir '{}'",
+                repo.display()
+            )))
+        } else {
+            Ok(Self(repo))
+        }
+    }
+}
 
 impl Repository for LocalPath {
     fn download(&self, _cache_dir: PathBuf) -> Result<()> {
