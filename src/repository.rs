@@ -22,12 +22,12 @@ pub struct GitAuth {
 
 impl Repository {
     pub fn try_new(repo: String, context: HashMap<String, String>) -> Result<Self> {
-        if repo.ends_with(".git") {
-            return Repository::new_git(repo, context);
-        } else if Regex::new("^gh.*:.*").unwrap().is_match(&repo) {
+        if Regex::new("^gh.*:.*").unwrap().is_match(&repo) {
             return Repository::new_alias_git(repo, context, "gh", "github", "github.com");
         } else if Regex::new("^gl.*:.*").unwrap().is_match(&repo) {
             return Repository::new_alias_git(repo, context, "gl", "gitlab", "gitlab.com");
+        } else if repo.ends_with(".git") {
+            return Repository::new_git(repo, context);
         }
 
         // local path
@@ -73,7 +73,9 @@ impl Repository {
         provider_url: &str,
     ) -> Result<Self> {
         let head = alias_repo.split(':').collect::<Vec<&str>>()[0];
-        let tail = alias_repo.strip_prefix(&format!("{}:", head)).unwrap();
+        let tail = alias_repo
+            .trim_start_matches(&format!("{}:", head))
+            .trim_end_matches(".git");
 
         let provider_url = context
             .remove(&format!("{}_alias", alias))
@@ -164,6 +166,20 @@ mod tests {
 
     #[test]
     fn test_github() {
+        let url = "gh:rust-lang/rust";
+        let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
+        assert_eq!(
+            repo,
+            Repository::Git {
+                url: "https://github.com/rust-lang/rust.git".into(),
+                branch: None,
+                auth: None
+            }
+        );
+    }
+
+    #[test]
+    fn test_github_with_suffix() {
         let url = "gh:rust-lang/rust";
         let repo = Repository::try_new(url.into(), HashMap::new()).unwrap();
         assert_eq!(
