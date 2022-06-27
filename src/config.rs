@@ -1,4 +1,3 @@
-use indexmap::IndexMap;
 use serde::Deserialize;
 
 use crate::prompt::Prompt;
@@ -8,7 +7,7 @@ pub struct Config {
     #[serde(default, rename(deserialize = "petridish"))]
     pub petridish_config: PetridishConfig,
     #[serde(default)]
-    pub prompts: IndexMap<String, Prompt>,
+    pub prompts: Vec<Prompt>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -56,7 +55,7 @@ project_var_name = "project"
                     project_prompt: "what's your project name?".into(),
                     project_var_name: "project".into()
                 },
-                prompts: IndexMap::new(),
+                prompts: vec![],
             }
         );
     }
@@ -72,7 +71,7 @@ project_var_name = "project"
                     project_prompt: "project name?".into(),
                     project_var_name: "project_name".into()
                 },
-                prompts: IndexMap::new(),
+                prompts: vec![],
             }
         )
     }
@@ -84,27 +83,32 @@ project_var_name = "project"
 project_prompt = "what's your project name?"
 project_var_name = "project"
 
-[prompts.name]
+[[prompts]]
+name = "name"
 prompt = "what's your name?"
 type = "string"
 
-[prompts.age]
+[[prompts]]
+name = "age"
 prompt = "what's your age?"
 type = "number"
 max = 150
 
-[prompts.love_rust]
+[[prompts]]
+name = "love_rust"
 prompt = "do you love rust?"
 type = "bool"
 default = true
 
-[prompts.hobbies]
+[[prompts]]
+name = "hobbies"
 prompt = "what's your hobbies?"
 type = "string"
 choices = ["swimming", "running", "reading"]
 multi = true
 
-[prompts.country]
+[[prompts]]
+name = "nationality"
 prompt = "what's your nationality?"
 type = "string"
 choices = ["Chinese", "American", "Japanese"]
@@ -117,67 +121,47 @@ choices = ["Chinese", "American", "Japanese"]
                     project_prompt: "what's your project name?".into(),
                     project_var_name: "project".into()
                 },
-                prompts: [
-                    (
-                        "name".into(),
-                        Prompt {
-                            prompt: Some("what's your name?".into()),
-                            kind: PromptKind::String(StringPrompt::Normal {
-                                default: None,
-                                regex: None,
-                            })
-                        }
-                    ),
-                    (
-                        "age".into(),
-                        Prompt {
-                            prompt: Some("what's your age?".into()),
-                            kind: PromptKind::Number(NumberPrompt::Normal {
-                                default: None,
-                                max: Some(150_f64),
-                                min: None,
-                            })
-                        }
-                    ),
-                    (
-                        "love_rust".into(),
-                        Prompt {
-                            prompt: Some("do you love rust?".into()),
-                            kind: PromptKind::Bool(BoolPrompt { default: true })
-                        }
-                    ),
-                    (
-                        "hobbies".into(),
-                        Prompt {
-                            prompt: Some("what's your hobbies?".into()),
-                            kind: PromptKind::String(StringPrompt::MultiSelector {
-                                choices: vec![
-                                    "swimming".into(),
-                                    "running".into(),
-                                    "reading".into()
-                                ],
-                                default: None,
-                                multi: LiteralTrue,
-                            })
-                        }
-                    ),
-                    (
-                        "country".into(),
-                        Prompt {
-                            prompt: Some("what's your nationality?".into()),
-                            kind: PromptKind::String(StringPrompt::SingleSelector {
-                                choices: vec![
-                                    "Chinese".into(),
-                                    "American".into(),
-                                    "Japanese".into()
-                                ],
-                                default: None,
-                            })
-                        }
-                    ),
+                prompts: vec![
+                    Prompt {
+                        name: "name".into(),
+                        prompt: Some("what's your name?".into()),
+                        kind: PromptKind::String(StringPrompt::Normal {
+                            default: None,
+                            regex: None,
+                        })
+                    },
+                    Prompt {
+                        name: "age".into(),
+                        prompt: Some("what's your age?".into()),
+                        kind: PromptKind::Number(NumberPrompt::Normal {
+                            default: None,
+                            max: Some(150_f64),
+                            min: None,
+                        })
+                    },
+                    Prompt {
+                        name: "love_rust".into(),
+                        prompt: Some("do you love rust?".into()),
+                        kind: PromptKind::Bool(BoolPrompt { default: true })
+                    },
+                    Prompt {
+                        name: "hobbies".into(),
+                        prompt: Some("what's your hobbies?".into()),
+                        kind: PromptKind::String(StringPrompt::MultiSelector {
+                            choices: vec!["swimming".into(), "running".into(), "reading".into()],
+                            default: None,
+                            multi: LiteralTrue,
+                        })
+                    },
+                    Prompt {
+                        name: "nationality".into(),
+                        prompt: Some("what's your nationality?".into()),
+                        kind: PromptKind::String(StringPrompt::SingleSelector {
+                            choices: vec!["Chinese".into(), "American".into(), "Japanese".into()],
+                            default: None,
+                        })
+                    }
                 ]
-                .into_iter()
-                .collect(),
             }
         )
     }

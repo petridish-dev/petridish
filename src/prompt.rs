@@ -55,6 +55,7 @@ pub struct BoolPrompt {
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
 pub struct Prompt {
+    pub name: String,
     pub prompt: Option<String>,
     #[serde(flatten)]
     pub kind: PromptKind,
@@ -75,9 +76,11 @@ mod tests {
     }
 
     test_prompt! {test_literal_number, r#"
+name="var"
 prompt="hello"
 type="number"
 "#, Prompt { 
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
         NumberPrompt::Normal {
@@ -88,10 +91,12 @@ type="number"
     )}}
 
     test_prompt! {test_literal_number_with_default, r#"
+name="var"
 prompt="hello"
 type="number"
 default=1
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
         NumberPrompt::Normal {
@@ -102,10 +107,12 @@ default=1
     )}}
 
     test_prompt! {test_literal_number_with_max, r#"
+name="var"
 prompt="hello"
 type="number"
 max=1
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
         NumberPrompt::Normal {
@@ -116,10 +123,12 @@ max=1
     )}}
 
     test_prompt! {test_literal_number_with_min, r#"
+name="var"
 prompt="hello"
 type="number"
 min=1
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
         NumberPrompt::Normal {
@@ -130,11 +139,13 @@ min=1
     )}}
 
     test_prompt! {test_literal_number_with_min_and_max, r#"
+name="var"
 prompt="hello"
 type="number"
 min=1
 max=2
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
         NumberPrompt::Normal {
@@ -145,12 +156,14 @@ max=2
     )}}
 
     test_prompt! {test_literal_number_with_min_and_max_and_default, r#"
+name="var"
 prompt="hello"
 type="number"
 min=1
 max=2
 default=1
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
         NumberPrompt::Normal {
@@ -161,9 +174,11 @@ default=1
     )}}
 
     test_prompt! {test_literal_str, r#"
+name="var"
 prompt="hello"
 type="string"
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::String(
         StringPrompt::Normal {
@@ -173,10 +188,12 @@ type="string"
     )}}
 
     test_prompt! {test_literal_str_with_default, r#"
+name="var"
 prompt="hello"
 type="string"
 default="abc"
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::String(
         StringPrompt::Normal {
@@ -186,10 +203,12 @@ default="abc"
     )}}
 
     test_prompt! {test_literal_str_with_regex, r#"
+name="var"
 prompt="hello"
 type="string"
 regex="abc"
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::String(
         StringPrompt::Normal {
@@ -199,11 +218,13 @@ regex="abc"
     )}}
 
     test_prompt! {test_literal_str_with_regex_and_default, r#"
+name="var"
 prompt="hello"
 type="string"
 regex="a.*c"
 default="abc"
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::String(
         StringPrompt::Normal {
@@ -213,27 +234,33 @@ default="abc"
     )}}
 
     test_prompt! {test_confirm, r#"
+name="var"    
 prompt="ok?"
 type="bool"
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("ok?".into()),
     kind: PromptKind::Bool(BoolPrompt {default: false})}
     }
 
     test_prompt! {test_confirm_with_default, r#"
+name="var"
 prompt="ok?"
 type="bool"
 default=true
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("ok?".into()),
     kind: PromptKind::Bool(BoolPrompt {default: true})}
     }
 
     test_prompt! {test_number_single_choice, r#"
+name="var"
 prompt="age"
 choices=[1, 2, 3]
 type="number"
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("age".into()),
     kind: PromptKind::Number(
         NumberPrompt::SingleSelector{
@@ -243,11 +270,13 @@ type="number"
     }}
 
     test_prompt! {test_number_single_choice_with_default, r#"
+name="var"
 prompt="age"
 choices=[1, 2, 3]
 type="number"
 default=1
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("age".into()),
     kind: PromptKind::Number(
         NumberPrompt::SingleSelector{
@@ -257,10 +286,12 @@ default=1
     }}
 
     test_prompt! {test_str_single_choice, r#"
+name="var"
 prompt="name"
 choices=["a", "b", "c"]
 type="string"
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("name".into()),
     kind: PromptKind::String(
         StringPrompt::SingleSelector{
@@ -270,11 +301,13 @@ type="string"
     }}
 
     test_prompt! {test_str_single_choice_with_default, r#"
+name="var"
 prompt="name"
 choices=["a", "b", "c"]
 type="string"
 default="a"
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("name".into()),
     kind: PromptKind::String(
         StringPrompt::SingleSelector{
@@ -284,11 +317,13 @@ default="a"
     }}
 
     test_prompt! {test_number_multi_choices, r#"
+name="var"
 prompt="age"
 choices=[1, 2, 3]
 type="number"
 multi=true
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("age".into()),
     kind: PromptKind::Number(
         NumberPrompt::MultiSelector{
@@ -299,12 +334,14 @@ multi=true
     }}
 
     test_prompt! {test_number_multi_choices_with_default, r#"
+name="var"
 prompt="age"
 choices=[1, 2, 3]
 type="number"
 default=[1]
 multi=true
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("age".into()),
     kind: PromptKind::Number(
         NumberPrompt::MultiSelector{
@@ -315,11 +352,13 @@ multi=true
     }}
 
     test_prompt! {test_str_multi_choices, r#"
+name="var"
 prompt="name"
 choices=["a", "b", "c"]
 type="string"
 multi=true
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("name".into()),
     kind: PromptKind::String(
         StringPrompt::MultiSelector{
@@ -330,12 +369,14 @@ multi=true
     }}
 
     test_prompt! {test_str_multi_choices_with_default, r#"
+name="var"    
 prompt="name"
 choices=["a", "b", "c"]
 type="string"
 default=["a"]
 multi=true
 "#, Prompt {
+    name: "var".into(),
     prompt: Some("name".into()),
     kind: PromptKind::String(
         StringPrompt::MultiSelector{

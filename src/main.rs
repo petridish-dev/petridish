@@ -111,8 +111,10 @@ fn main() -> Result<()> {
         petridish_config.petridish_config.project_var_name,
         &project_name,
     );
-    for (prompt_name, prompt_config) in petridish_config.prompts {
-        let prompt_msg = prompt_config.prompt.unwrap_or_else(|| prompt_name.clone());
+    for prompt_config in petridish_config.prompts {
+        let prompt_msg = prompt_config
+            .prompt
+            .unwrap_or_else(|| prompt_config.name.clone());
         match prompt_config.kind {
             petridish::prompt::PromptKind::String(v) => match v {
                 petridish::prompt::StringPrompt::MultiSelector {
@@ -139,7 +141,7 @@ fn main() -> Result<()> {
                         .iter()
                         .map(|idx| choices[*idx].clone())
                         .collect::<Vec<_>>();
-                    prompt_context.insert(prompt_name, &selections);
+                    prompt_context.insert(prompt_config.name, &selections);
                 }
                 petridish::prompt::StringPrompt::SingleSelector { choices, default } => {
                     let default: usize = match default {
@@ -153,7 +155,7 @@ fn main() -> Result<()> {
                         .interact()
                         .unwrap();
                     let value = &choices[selection];
-                    prompt_context.insert(prompt_name, value);
+                    prompt_context.insert(prompt_config.name, value);
                 }
                 petridish::prompt::StringPrompt::Normal { default, regex } => {
                     let default = default.unwrap_or_default();
@@ -172,7 +174,7 @@ fn main() -> Result<()> {
                         }
                         break value;
                     };
-                    prompt_context.insert(prompt_name, &value);
+                    prompt_context.insert(prompt_config.name, &value);
                 }
             },
             petridish::prompt::PromptKind::Number(v) => match v {
@@ -200,7 +202,7 @@ fn main() -> Result<()> {
                         .iter()
                         .map(|idx| choices[*idx])
                         .collect::<Vec<_>>();
-                    prompt_context.insert(prompt_name, &selections);
+                    prompt_context.insert(prompt_config.name, &selections);
                 }
                 petridish::prompt::NumberPrompt::SingleSelector { choices, default } => {
                     let default: usize = match default {
@@ -214,7 +216,7 @@ fn main() -> Result<()> {
                         .interact()
                         .unwrap();
                     let value = &choices[selection];
-                    prompt_context.insert(prompt_name, value);
+                    prompt_context.insert(prompt_config.name, value);
                 }
                 petridish::prompt::NumberPrompt::Normal { default, min, max } => {
                     let default = default.unwrap_or_default();
@@ -238,7 +240,7 @@ fn main() -> Result<()> {
                         }
                         break value;
                     };
-                    prompt_context.insert(prompt_name, &value);
+                    prompt_context.insert(prompt_config.name, &value);
                 }
             },
             petridish::prompt::PromptKind::Bool(BoolPrompt { default }) => {
@@ -248,7 +250,7 @@ fn main() -> Result<()> {
                     .wait_for_newline(true)
                     .interact()
                     .unwrap();
-                prompt_context.insert(prompt_name, &value);
+                prompt_context.insert(prompt_config.name, &value);
             }
         }
     }
