@@ -4,9 +4,8 @@ use std::{collections::HashMap, path::PathBuf};
 use clap::{builder::ArgAction, Parser};
 use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
 use petridish::{
-    config::Config,
+    config::{BoolPrompt, Config},
     error::{Error, Result},
-    prompt::BoolPrompt,
     render::Render,
     try_new_repo,
 };
@@ -116,8 +115,8 @@ fn main() -> Result<()> {
             .prompt
             .unwrap_or_else(|| prompt_config.name.clone());
         match prompt_config.kind {
-            petridish::prompt::PromptKind::String(v) => match v {
-                petridish::prompt::StringPrompt::MultiSelector {
+            petridish::config::PromptKind::String(v) => match v {
+                petridish::config::StringPrompt::MultiSelector {
                     multi: _,
                     choices,
                     default,
@@ -143,7 +142,7 @@ fn main() -> Result<()> {
                         .collect::<Vec<_>>();
                     prompt_context.insert(prompt_config.name, &selections);
                 }
-                petridish::prompt::StringPrompt::SingleSelector { choices, default } => {
+                petridish::config::StringPrompt::SingleSelector { choices, default } => {
                     let default: usize = match default {
                         Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
@@ -157,7 +156,7 @@ fn main() -> Result<()> {
                     let value = &choices[selection];
                     prompt_context.insert(prompt_config.name, value);
                 }
-                petridish::prompt::StringPrompt::Normal { default, regex } => {
+                petridish::config::StringPrompt::Normal { default, regex } => {
                     let default = default.unwrap_or_default();
                     let regex = regex.map(|pattern| regex::Regex::new(&pattern).unwrap());
                     let value = loop {
@@ -177,8 +176,8 @@ fn main() -> Result<()> {
                     prompt_context.insert(prompt_config.name, &value);
                 }
             },
-            petridish::prompt::PromptKind::Number(v) => match v {
-                petridish::prompt::NumberPrompt::MultiSelector {
+            petridish::config::PromptKind::Number(v) => match v {
+                petridish::config::NumberPrompt::MultiSelector {
                     multi: _,
                     choices,
                     default,
@@ -204,7 +203,7 @@ fn main() -> Result<()> {
                         .collect::<Vec<_>>();
                     prompt_context.insert(prompt_config.name, &selections);
                 }
-                petridish::prompt::NumberPrompt::SingleSelector { choices, default } => {
+                petridish::config::NumberPrompt::SingleSelector { choices, default } => {
                     let default: usize = match default {
                         Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
@@ -218,7 +217,7 @@ fn main() -> Result<()> {
                     let value = &choices[selection];
                     prompt_context.insert(prompt_config.name, value);
                 }
-                petridish::prompt::NumberPrompt::Normal { default, min, max } => {
+                petridish::config::NumberPrompt::Normal { default, min, max } => {
                     let default = default.unwrap_or_default();
                     let value = loop {
                         let value = Input::with_theme(&ColorfulTheme::default())
@@ -243,7 +242,7 @@ fn main() -> Result<()> {
                     prompt_context.insert(prompt_config.name, &value);
                 }
             },
-            petridish::prompt::PromptKind::Bool(BoolPrompt { default }) => {
+            petridish::config::PromptKind::Bool(BoolPrompt { default }) => {
                 let value = Confirm::with_theme(&ColorfulTheme::default())
                     .with_prompt(&prompt_msg)
                     .default(default)
