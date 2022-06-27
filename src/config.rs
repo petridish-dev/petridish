@@ -1,13 +1,13 @@
 use serde::Deserialize;
 
-use crate::prompt::Prompt;
+use crate::prompt::PromptConfig;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Config {
     #[serde(default, rename(deserialize = "petridish"))]
     pub petridish_config: PetridishConfig,
     #[serde(default)]
-    pub prompts: Vec<Prompt>,
+    pub prompts: Vec<PromptConfig>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -122,7 +122,7 @@ choices = ["Chinese", "American", "Japanese"]
                     project_var_name: "project".into()
                 },
                 prompts: vec![
-                    Prompt {
+                    PromptConfig {
                         name: "name".into(),
                         prompt: Some("what's your name?".into()),
                         kind: PromptKind::String(StringPrompt::Normal {
@@ -130,7 +130,7 @@ choices = ["Chinese", "American", "Japanese"]
                             regex: None,
                         })
                     },
-                    Prompt {
+                    PromptConfig {
                         name: "age".into(),
                         prompt: Some("what's your age?".into()),
                         kind: PromptKind::Number(NumberPrompt::Normal {
@@ -139,12 +139,12 @@ choices = ["Chinese", "American", "Japanese"]
                             min: None,
                         })
                     },
-                    Prompt {
+                    PromptConfig {
                         name: "love_rust".into(),
                         prompt: Some("do you love rust?".into()),
                         kind: PromptKind::Bool(BoolPrompt { default: true })
                     },
-                    Prompt {
+                    PromptConfig {
                         name: "hobbies".into(),
                         prompt: Some("what's your hobbies?".into()),
                         kind: PromptKind::String(StringPrompt::MultiSelector {
@@ -153,7 +153,7 @@ choices = ["Chinese", "American", "Japanese"]
                             multi: LiteralTrue,
                         })
                     },
-                    Prompt {
+                    PromptConfig {
                         name: "nationality".into(),
                         prompt: Some("what's your nationality?".into()),
                         kind: PromptKind::String(StringPrompt::SingleSelector {

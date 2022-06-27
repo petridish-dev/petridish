@@ -54,7 +54,7 @@ pub struct BoolPrompt {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
-pub struct Prompt {
+pub struct PromptConfig {
     pub name: String,
     pub prompt: Option<String>,
     #[serde(flatten)]
@@ -79,7 +79,7 @@ mod tests {
 name="var"
 prompt="hello"
 type="number"
-"#, Prompt { 
+"#, PromptConfig { 
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
@@ -95,7 +95,7 @@ name="var"
 prompt="hello"
 type="number"
 default=1
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
@@ -111,7 +111,7 @@ name="var"
 prompt="hello"
 type="number"
 max=1
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
@@ -127,7 +127,7 @@ name="var"
 prompt="hello"
 type="number"
 min=1
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
@@ -144,7 +144,7 @@ prompt="hello"
 type="number"
 min=1
 max=2
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
@@ -162,7 +162,7 @@ type="number"
 min=1
 max=2
 default=1
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::Number(
@@ -177,7 +177,7 @@ default=1
 name="var"
 prompt="hello"
 type="string"
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::String(
@@ -192,7 +192,7 @@ name="var"
 prompt="hello"
 type="string"
 default="abc"
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::String(
@@ -207,7 +207,7 @@ name="var"
 prompt="hello"
 type="string"
 regex="abc"
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::String(
@@ -223,7 +223,7 @@ prompt="hello"
 type="string"
 regex="a.*c"
 default="abc"
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
     kind: PromptKind::String(
@@ -237,7 +237,7 @@ default="abc"
 name="var"    
 prompt="ok?"
 type="bool"
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("ok?".into()),
     kind: PromptKind::Bool(BoolPrompt {default: false})}
@@ -248,7 +248,7 @@ name="var"
 prompt="ok?"
 type="bool"
 default=true
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("ok?".into()),
     kind: PromptKind::Bool(BoolPrompt {default: true})}
@@ -259,7 +259,7 @@ name="var"
 prompt="age"
 choices=[1, 2, 3]
 type="number"
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("age".into()),
     kind: PromptKind::Number(
@@ -275,7 +275,7 @@ prompt="age"
 choices=[1, 2, 3]
 type="number"
 default=1
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("age".into()),
     kind: PromptKind::Number(
@@ -290,7 +290,7 @@ name="var"
 prompt="name"
 choices=["a", "b", "c"]
 type="string"
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("name".into()),
     kind: PromptKind::String(
@@ -306,7 +306,7 @@ prompt="name"
 choices=["a", "b", "c"]
 type="string"
 default="a"
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("name".into()),
     kind: PromptKind::String(
@@ -322,7 +322,7 @@ prompt="age"
 choices=[1, 2, 3]
 type="number"
 multi=true
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("age".into()),
     kind: PromptKind::Number(
@@ -340,7 +340,7 @@ choices=[1, 2, 3]
 type="number"
 default=[1]
 multi=true
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("age".into()),
     kind: PromptKind::Number(
@@ -357,7 +357,7 @@ prompt="name"
 choices=["a", "b", "c"]
 type="string"
 multi=true
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("name".into()),
     kind: PromptKind::String(
@@ -375,7 +375,7 @@ choices=["a", "b", "c"]
 type="string"
 default=["a"]
 multi=true
-"#, Prompt {
+"#, PromptConfig {
     name: "var".into(),
     prompt: Some("name".into()),
     kind: PromptKind::String(
