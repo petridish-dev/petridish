@@ -1,5 +1,4 @@
-use std::collections::BTreeMap;
-
+use indexmap::IndexMap;
 use serde::Deserialize;
 
 use crate::prompt::Prompt;
@@ -9,7 +8,7 @@ pub struct Config {
     #[serde(default, rename(deserialize = "petridish"))]
     pub petridish_config: PetridishConfig,
     #[serde(default)]
-    pub prompts: BTreeMap<String, Prompt>,
+    pub prompts: IndexMap<String, Prompt>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -57,7 +56,7 @@ project_var_name = "project"
                     project_prompt: "what's your project name?".into(),
                     project_var_name: "project".into()
                 },
-                prompts: BTreeMap::new(),
+                prompts: IndexMap::new(),
             }
         );
     }
@@ -73,7 +72,7 @@ project_var_name = "project"
                     project_prompt: "project name?".into(),
                     project_var_name: "project_name".into()
                 },
-                prompts: BTreeMap::new(),
+                prompts: IndexMap::new(),
             }
         )
     }
