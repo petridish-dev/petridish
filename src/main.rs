@@ -2,7 +2,7 @@ use std::fs::read_to_string;
 use std::{collections::HashMap, path::PathBuf};
 
 use clap::{builder::ArgAction, Parser};
-use dialoguer::{theme::ColorfulTheme, Confirm, Input, MultiSelect, Select};
+use inquire::validator::Validation;
 use petridish::{
     config::{BoolPrompt, Config},
     error::{Error, Result},
@@ -102,9 +102,8 @@ fn main() -> Result<()> {
     // start prompting
     let mut prompt_context = Context::new();
 
-    let project_name: String = Input::with_theme(&ColorfulTheme::default())
-        .with_prompt(petridish_config.petridish_config.project_prompt)
-        .interact_text()
+    let project_name = inquire::Text::new(&petridish_config.petridish_config.project_prompt)
+        .prompt()
         .unwrap();
     prompt_context.insert(
         petridish_config.petridish_config.project_var_name,
@@ -125,21 +124,19 @@ fn main() -> Result<()> {
                         match default {
                             Some(default) => choices
                                 .iter()
-                                .map(|choice| default.contains(choice))
+                                .enumerate()
+                                .filter(|(_, choice)| default.contains(choice))
+                                .map(|(idx, _)| idx)
                                 .collect(),
-                            None => vec![false; choices.len()],
+                            None => vec![],
                         }
                     };
-                    let selections = MultiSelect::with_theme(&ColorfulTheme::default())
-                        .with_prompt(&prompt_msg)
-                        .items(&choices[..])
-                        .defaults(&defaults[..])
-                        .interact()
+
+                    let selections = inquire::MultiSelect::new(&prompt_msg, choices)
+                        .with_default(&defaults)
+                        .prompt()
                         .unwrap();
-                    let selections = selections
-                        .iter()
-                        .map(|idx| choices[*idx].clone())
-                        .collect::<Vec<_>>();
+
                     prompt_context.insert(prompt_config.name, &selections);
                 }
                 petridish::config::StringPrompt::SingleSelector { choices, default } => {
@@ -147,32 +144,28 @@ fn main() -> Result<()> {
                         Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
                     };
-                    let selection = Select::with_theme(&ColorfulTheme::default())
-                        .with_prompt(&prompt_msg)
-                        .items(&choices)
-                        .default(default)
-                        .interact()
+                    let value = inquire::Select::new(&prompt_msg, choices)
+                        .with_starting_cursor(default)
+                        .prompt()
                         .unwrap();
-                    let value = &choices[selection];
-                    prompt_context.insert(prompt_config.name, value);
+                    prompt_context.insert(prompt_config.name, &value);
                 }
                 petridish::config::StringPrompt::Normal { default, regex } => {
                     let default = default.unwrap_or_default();
-                    let regex = regex.map(|pattern| regex::Regex::new(&pattern).unwrap());
-                    let value = loop {
-                        let value = Input::with_theme(&ColorfulTheme::default())
-                            .with_prompt(&prompt_msg)
-                            .default(default.clone())
-                            .interact_text()
-                            .unwrap();
-                        if let Some(regex) = &regex {
-                            if !regex.is_match(&value) {
-                                println!("not match regex: {}", regex);
-                                continue;
+                    let regex = regex::Regex::new(&regex.unwrap_or_else(|| ".*".into())).unwrap();
+                    let value = inquire::Text::new(&prompt_msg)
+                        .with_default(&default)
+                        .with_validator(&|v| {
+                            if regex.is_match(v) {
+                                Ok(Validation::Valid)
+                            } else {
+                                Ok(Validation::Invalid(
+                                    format!("'not match regex '{}'", regex).into(),
+                                ))
                             }
-                        }
-                        break value;
-                    };
+                        })
+                        .prompt()
+                        .unwrap();
                     prompt_context.insert(prompt_config.name, &value);
                 }
             },
@@ -186,21 +179,19 @@ fn main() -> Result<()> {
                         match default {
                             Some(default) => choices
                                 .iter()
-                                .map(|choice| default.contains(choice))
+                                .enumerate()
+                                .filter(|(_, choice)| default.contains(choice))
+                                .map(|(idx, _)| idx)
                                 .collect(),
-                            None => vec![false; choices.len()],
+                            None => vec![],
                         }
                     };
-                    let selections = MultiSelect::with_theme(&ColorfulTheme::default())
-                        .with_prompt(&prompt_msg)
-                        .items(&choices[..])
-                        .defaults(&defaults[..])
-                        .interact()
+
+                    let selections = inquire::MultiSelect::new(&prompt_msg, choices)
+                        .with_default(&defaults)
+                        .prompt()
                         .unwrap();
-                    let selections = selections
-                        .iter()
-                        .map(|idx| choices[*idx])
-                        .collect::<Vec<_>>();
+
                     prompt_context.insert(prompt_config.name, &selections);
                 }
                 petridish::config::NumberPrompt::SingleSelector { choices, default } => {
@@ -208,46 +199,36 @@ fn main() -> Result<()> {
                         Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
                     };
-                    let selection = Select::with_theme(&ColorfulTheme::default())
-                        .with_prompt(&prompt_msg)
-                        .items(&choices)
-                        .default(default)
-                        .interact()
+                    let value = inquire::Select::new(&prompt_msg, choices)
+                        .with_starting_cursor(default)
+                        .prompt()
                         .unwrap();
-                    let value = &choices[selection];
-                    prompt_context.insert(prompt_config.name, value);
+                    prompt_context.insert(prompt_config.name, &value);
                 }
                 petridish::config::NumberPrompt::Normal { default, min, max } => {
                     let default = default.unwrap_or_default();
-                    let value = loop {
-                        let value = Input::with_theme(&ColorfulTheme::default())
-                            .with_prompt(&prompt_msg)
-                            .default(default)
-                            .interact_text()
-                            .unwrap();
-                        if let Some(min) = min {
-                            if value < min {
-                                println!("{} is less than {}", value, min);
-                                continue;
-                            }
+                    let mut prompt = inquire::CustomType::<f64>::new(&prompt_msg)
+                        .with_default((default, &|v| v.to_string()))
+                        .with_error_message("Please type a valid number");
+                    let help_msg = match (&min, &max) {
+                        (Some(min), Some(max)) => {
+                            Some(format!("range: {} <= value <= {}", min, max))
                         }
-                        if let Some(max) = max {
-                            if value > max {
-                                println!("{} is greater than {}", value, max);
-                                continue;
-                            }
-                        }
-                        break value;
+                        (Some(min), None) => Some(format!("range: {} <= value", min)),
+                        (None, Some(max)) => Some(format!("range: value <= {}", max)),
+                        _ => None,
                     };
+                    if let Some(help_msg) = help_msg.as_ref() {
+                        prompt = prompt.with_help_message(help_msg);
+                    }
+                    let value = prompt.prompt().unwrap();
                     prompt_context.insert(prompt_config.name, &value);
                 }
             },
             petridish::config::PromptKind::Bool(BoolPrompt { default }) => {
-                let value = Confirm::with_theme(&ColorfulTheme::default())
-                    .with_prompt(&prompt_msg)
-                    .default(default)
-                    .wait_for_newline(true)
-                    .interact()
+                let value = inquire::Confirm::new(&prompt_msg)
+                    .with_default(default)
+                    .prompt()
                     .unwrap();
                 prompt_context.insert(prompt_config.name, &value);
             }
