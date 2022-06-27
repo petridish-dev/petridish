@@ -207,21 +207,56 @@ fn main() -> Result<()> {
                 }
                 petridish::config::NumberPrompt::Normal { default, min, max } => {
                     let default = default.unwrap_or_default();
-                    let mut prompt = inquire::CustomType::<f64>::new(&prompt_msg)
-                        .with_default((default, &|v| v.to_string()))
-                        .with_error_message("Please type a valid number");
-                    let help_msg = match (&min, &max) {
-                        (Some(min), Some(max)) => {
-                            Some(format!("range: {} <= value <= {}", min, max))
-                        }
-                        (Some(min), None) => Some(format!("range: {} <= value", min)),
-                        (None, Some(max)) => Some(format!("range: value <= {}", max)),
-                        _ => None,
+                    let value = match (min, max) {
+                        (Some(min), Some(max)) => inquire::CustomType::<f64>::new(&prompt_msg)
+                            .with_default((default, &|v| v.to_string()))
+                            .with_error_message("Please type a valid number")
+                            .with_help_message(&format!("range: {} <= value <= {}", min, max))
+                            .with_parser(&|v| {
+                                let v = v.parse::<f64>().map_err(|_| ())?;
+                                if v < min || v > max {
+                                    Err(())
+                                } else {
+                                    Ok(v)
+                                }
+                            })
+                            .prompt()
+                            .unwrap(),
+                        (Some(min), None) => inquire::CustomType::<f64>::new(&prompt_msg)
+                            .with_default((default, &|v| v.to_string()))
+                            .with_error_message("Please type a valid number")
+                            .with_help_message(&format!("range: {} <= value", min))
+                            .with_parser(&|v| {
+                                let v = v.parse::<f64>().map_err(|_| ())?;
+                                if v < min {
+                                    Err(())
+                                } else {
+                                    Ok(v)
+                                }
+                            })
+                            .prompt()
+                            .unwrap(),
+                        (None, Some(max)) => inquire::CustomType::<f64>::new(&prompt_msg)
+                            .with_default((default, &|v| v.to_string()))
+                            .with_error_message("Please type a valid number")
+                            .with_help_message(&format!("range: value <= {}", max))
+                            .with_parser(&|v| {
+                                let v = v.parse::<f64>().map_err(|_| ())?;
+                                if v > max {
+                                    Err(())
+                                } else {
+                                    Ok(v)
+                                }
+                            })
+                            .prompt()
+                            .unwrap(),
+                        _ => inquire::CustomType::<f64>::new(&prompt_msg)
+                            .with_default((default, &|v| v.to_string()))
+                            .with_error_message("Please type a valid number")
+                            .prompt()
+                            .unwrap(),
                     };
-                    if let Some(help_msg) = help_msg.as_ref() {
-                        prompt = prompt.with_help_message(help_msg);
-                    }
-                    let value = prompt.prompt().unwrap();
+
                     prompt_context.insert(prompt_config.name, &value);
                 }
             },
