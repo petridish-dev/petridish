@@ -37,7 +37,7 @@ impl Default for PetridishConfig {
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
-pub enum PromptKind {
+pub enum PromptType {
     String(StringPrompt),
     Number(NumberPrompt),
     Bool(BoolPrompt),
@@ -91,7 +91,7 @@ pub struct PromptConfig {
     pub name: String,
     pub prompt: Option<String>,
     #[serde(flatten)]
-    pub kind: PromptKind,
+    pub prompt_type: PromptType,
 }
 
 #[cfg(test)]
@@ -115,7 +115,7 @@ type="number"
 "#, PromptConfig { 
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::Normal {
             max: None,
             min: None,
@@ -131,7 +131,7 @@ default=1
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::Normal {
             max: None,
             min: None,
@@ -147,7 +147,7 @@ max=1
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::Normal {
             max: Some(1_f64),
             min: None,
@@ -163,7 +163,7 @@ min=1
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::Normal {
             max: None,
             min: Some(1_f64),
@@ -180,7 +180,7 @@ max=2
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::Normal {
             max: Some(2_f64),
             min: Some(1_f64),
@@ -198,7 +198,7 @@ default=1
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::Normal {
             max: Some(2_f64),
             min: Some(1_f64),
@@ -213,7 +213,7 @@ type="string"
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::String(
+    prompt_type: PromptType::String(
         StringPrompt::Normal {
             regex: None,
             default: None
@@ -228,7 +228,7 @@ default="abc"
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::String(
+    prompt_type: PromptType::String(
         StringPrompt::Normal {
             regex: None,
             default: Some("abc".into())
@@ -243,7 +243,7 @@ regex="abc"
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::String(
+    prompt_type: PromptType::String(
         StringPrompt::Normal {
             regex: Some("abc".into()),
             default: None
@@ -259,7 +259,7 @@ default="abc"
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("hello".into()),
-    kind: PromptKind::String(
+    prompt_type: PromptType::String(
         StringPrompt::Normal {
             regex: Some("a.*c".into()),
             default: Some("abc".into()),
@@ -273,7 +273,7 @@ type="bool"
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("ok?".into()),
-    kind: PromptKind::Bool(BoolPrompt {default: false})}
+    prompt_type: PromptType::Bool(BoolPrompt {default: false})}
     }
 
     test_prompt! {test_confirm_with_default, r#"
@@ -284,7 +284,7 @@ default=true
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("ok?".into()),
-    kind: PromptKind::Bool(BoolPrompt {default: true})}
+    prompt_type: PromptType::Bool(BoolPrompt {default: true})}
     }
 
     test_prompt! {test_number_single_choice, r#"
@@ -295,7 +295,7 @@ type="number"
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("age".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::SingleSelector{
             choices: vec![1_f64, 2_f64, 3_f64],
             default: None,
@@ -311,7 +311,7 @@ default=1
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("age".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::SingleSelector{
             choices: vec![1_f64, 2_f64, 3_f64],
             default: Some(1_f64),
@@ -326,7 +326,7 @@ type="string"
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("name".into()),
-    kind: PromptKind::String(
+    prompt_type: PromptType::String(
         StringPrompt::SingleSelector{
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: None,
@@ -342,7 +342,7 @@ default="a"
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("name".into()),
-    kind: PromptKind::String(
+    prompt_type: PromptType::String(
         StringPrompt::SingleSelector{
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: Some("a".into()),
@@ -358,7 +358,7 @@ multi=true
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("age".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::MultiSelector{
             choices: vec![1_f64, 2_f64, 3_f64],
             default: None,
@@ -376,7 +376,7 @@ multi=true
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("age".into()),
-    kind: PromptKind::Number(
+    prompt_type: PromptType::Number(
         NumberPrompt::MultiSelector{
             choices: vec![1_f64, 2_f64, 3_f64],
             default: Some(vec![1_f64]),
@@ -393,7 +393,7 @@ multi=true
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("name".into()),
-    kind: PromptKind::String(
+    prompt_type: PromptType::String(
         StringPrompt::MultiSelector{
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: None,
@@ -411,7 +411,7 @@ multi=true
 "#, PromptConfig {
     name: "var".into(),
     prompt: Some("name".into()),
-    kind: PromptKind::String(
+    prompt_type: PromptType::String(
         StringPrompt::MultiSelector{
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: Some(vec!["a".into()]),
@@ -504,7 +504,7 @@ choices = ["Chinese", "American", "Japanese"]
                     PromptConfig {
                         name: "name".into(),
                         prompt: Some("what's your name?".into()),
-                        kind: PromptKind::String(StringPrompt::Normal {
+                        prompt_type: PromptType::String(StringPrompt::Normal {
                             default: None,
                             regex: None,
                         })
@@ -512,7 +512,7 @@ choices = ["Chinese", "American", "Japanese"]
                     PromptConfig {
                         name: "age".into(),
                         prompt: Some("what's your age?".into()),
-                        kind: PromptKind::Number(NumberPrompt::Normal {
+                        prompt_type: PromptType::Number(NumberPrompt::Normal {
                             default: None,
                             max: Some(150_f64),
                             min: None,
@@ -521,12 +521,12 @@ choices = ["Chinese", "American", "Japanese"]
                     PromptConfig {
                         name: "love_rust".into(),
                         prompt: Some("do you love rust?".into()),
-                        kind: PromptKind::Bool(BoolPrompt { default: true })
+                        prompt_type: PromptType::Bool(BoolPrompt { default: true })
                     },
                     PromptConfig {
                         name: "hobbies".into(),
                         prompt: Some("what's your hobbies?".into()),
-                        kind: PromptKind::String(StringPrompt::MultiSelector {
+                        prompt_type: PromptType::String(StringPrompt::MultiSelector {
                             choices: vec!["swimming".into(), "running".into(), "reading".into()],
                             default: None,
                             multi: LiteralTrue,
@@ -535,7 +535,7 @@ choices = ["Chinese", "American", "Japanese"]
                     PromptConfig {
                         name: "nationality".into(),
                         prompt: Some("what's your nationality?".into()),
-                        kind: PromptKind::String(StringPrompt::SingleSelector {
+                        prompt_type: PromptType::String(StringPrompt::SingleSelector {
                             choices: vec!["Chinese".into(), "American".into(), "Japanese".into()],
                             default: None,
                         })

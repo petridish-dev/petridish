@@ -113,8 +113,8 @@ fn main() -> Result<()> {
         let prompt_msg = prompt_config
             .prompt
             .unwrap_or_else(|| prompt_config.name.clone());
-        match prompt_config.kind {
-            petridish::config::PromptKind::String(v) => match v {
+        match prompt_config.prompt_type {
+            petridish::config::PromptType::String(v) => match v {
                 petridish::config::StringPrompt::MultiSelector {
                     multi: _,
                     choices,
@@ -169,7 +169,7 @@ fn main() -> Result<()> {
                     prompt_context.insert(prompt_config.name, &value);
                 }
             },
-            petridish::config::PromptKind::Number(v) => match v {
+            petridish::config::PromptType::Number(v) => match v {
                 petridish::config::NumberPrompt::MultiSelector {
                     multi: _,
                     choices,
@@ -260,7 +260,7 @@ fn main() -> Result<()> {
                     prompt_context.insert(prompt_config.name, &value);
                 }
             },
-            petridish::config::PromptKind::Bool(BoolPrompt { default }) => {
+            petridish::config::PromptType::Bool(BoolPrompt { default }) => {
                 let value = inquire::Confirm::new(&prompt_msg)
                     .with_default(default)
                     .prompt()
