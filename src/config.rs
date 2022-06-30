@@ -78,12 +78,23 @@ pub struct StringInput {
 
 impl StringInput {
     pub fn prompt(self) -> (String, impl Serialize) {
-        let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
-        let default = self.default.unwrap_or_default();
-        let regex = regex::Regex::new(&self.regex.unwrap_or_else(|| ".*".into())).unwrap();
-        let value = inquire::Text::new(&prompt)
-            .with_default(&default)
-            .with_validator(&|v| {
+        let StringInput {
+            name,
+            prompt,
+            default,
+            regex,
+        } = self;
+
+        let prompt = prompt.unwrap_or_else(|| name.clone());
+        let mut prompt = inquire::Text::new(&prompt);
+        if let Some(default) = &default {
+            prompt.default = Some(default)
+        }
+
+        let value = if let Some(pattern) = &regex {
+            let help_msg = format!("should match regex '{}'", pattern);
+            let regex = regex::Regex::new(pattern).unwrap();
+            let validator = move |v: &'_ str| {
                 if regex.is_match(v) {
                     Ok(Validation::Valid)
                 } else {
@@ -91,11 +102,16 @@ impl StringInput {
                         format!("'not match regex '{}'", regex).into(),
                     ))
                 }
-            })
-            .prompt()
-            .unwrap();
+            };
 
-        (self.name, value)
+            prompt.validators.push(&validator);
+            prompt.help_message = Some(&help_msg);
+            prompt.prompt().unwrap()
+        } else {
+            prompt.prompt().unwrap()
+        };
+
+        (name, value)
     }
 }
 
