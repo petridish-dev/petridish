@@ -4,7 +4,7 @@ use std::{collections::HashMap, path::PathBuf};
 use clap::{builder::ArgAction, Parser};
 use inquire::validator::Validation;
 use petridish::{
-    config::{BoolPrompt, Config},
+    config::*,
     error::{Error, Result},
     render::Render,
     try_new_repo,
@@ -86,7 +86,7 @@ fn main() -> Result<()> {
     }
 
     let petridish_config =
-        toml::from_str::<Config>(&read_to_string(petridish_config).unwrap()).unwrap();
+        toml::from_str::<Config2>(&read_to_string(petridish_config).unwrap()).unwrap();
     let entry_dir_name = format!(
         "{{{{ {} }}}}",
         petridish_config.petridish_config.project_var_name
@@ -109,17 +109,16 @@ fn main() -> Result<()> {
         petridish_config.petridish_config.project_var_name,
         &project_name,
     );
-    for prompt_config in petridish_config.prompts {
-        let prompt_msg = prompt_config
-            .prompt
-            .unwrap_or_else(|| prompt_config.name.clone());
-        match prompt_config.prompt_type {
-            petridish::config::PromptType::String(v) => match v {
-                petridish::config::StringPrompt::MultiSelect {
+    for prompt_type in petridish_config.prompts {
+        match prompt_type {
+            PromptType2::String(v) => match v {
+                StringPrompt2::MultiSelect(MultiSelect {
                     multi: _,
+                    name,
+                    prompt,
                     choices,
                     default,
-                } => {
+                }) => {
                     let defaults = {
                         match default {
                             Some(default) => choices
@@ -131,29 +130,41 @@ fn main() -> Result<()> {
                             None => vec![],
                         }
                     };
-
-                    let selections = inquire::MultiSelect::new(&prompt_msg, choices)
+                    let prompt = prompt.unwrap_or_else(|| name.clone());
+                    let selections = inquire::MultiSelect::new(&prompt, choices)
                         .with_default(&defaults)
                         .prompt()
                         .unwrap();
 
-                    prompt_context.insert(prompt_config.name, &selections);
+                    prompt_context.insert(name, &selections);
                 }
-                petridish::config::StringPrompt::Select { choices, default } => {
+                StringPrompt2::Select(Select {
+                    name,
+                    prompt,
+                    choices,
+                    default,
+                }) => {
                     let default: usize = match default {
                         Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
                     };
-                    let value = inquire::Select::new(&prompt_msg, choices)
+                    let prompt = prompt.unwrap_or_else(|| name.clone());
+                    let value = inquire::Select::new(&prompt, choices)
                         .with_starting_cursor(default)
                         .prompt()
                         .unwrap();
-                    prompt_context.insert(prompt_config.name, &value);
+                    prompt_context.insert(name, &value);
                 }
-                petridish::config::StringPrompt::Input { default, regex } => {
+                StringPrompt2::Input(StringInput {
+                    name,
+                    prompt,
+                    default,
+                    regex,
+                }) => {
+                    let prompt = prompt.unwrap_or_else(|| name.clone());
                     let default = default.unwrap_or_default();
                     let regex = regex::Regex::new(&regex.unwrap_or_else(|| ".*".into())).unwrap();
-                    let value = inquire::Text::new(&prompt_msg)
+                    let value = inquire::Text::new(&prompt)
                         .with_default(&default)
                         .with_validator(&|v| {
                             if regex.is_match(v) {
@@ -166,15 +177,17 @@ fn main() -> Result<()> {
                         })
                         .prompt()
                         .unwrap();
-                    prompt_context.insert(prompt_config.name, &value);
+                    prompt_context.insert(name, &value);
                 }
             },
-            petridish::config::PromptType::Number(v) => match v {
-                petridish::config::NumberPrompt::MultiSelect {
+            PromptType2::Number(v) => match v {
+                NumberPrompt2::MultiSelect(MultiSelect {
                     multi: _,
+                    name,
+                    prompt,
                     choices,
                     default,
-                } => {
+                }) => {
                     let defaults = {
                         match default {
                             Some(default) => choices
@@ -186,29 +199,43 @@ fn main() -> Result<()> {
                             None => vec![],
                         }
                     };
-
-                    let selections = inquire::MultiSelect::new(&prompt_msg, choices)
+                    let prompt = prompt.unwrap_or_else(|| name.clone());
+                    let selections = inquire::MultiSelect::new(&prompt, choices)
                         .with_default(&defaults)
                         .prompt()
                         .unwrap();
 
-                    prompt_context.insert(prompt_config.name, &selections);
+                    prompt_context.insert(name, &selections);
                 }
-                petridish::config::NumberPrompt::Select { choices, default } => {
+                NumberPrompt2::Select(Select {
+                    name,
+                    prompt,
+                    choices,
+                    default,
+                }) => {
                     let default: usize = match default {
                         Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
                     };
-                    let value = inquire::Select::new(&prompt_msg, choices)
+                    let prompt = prompt.unwrap_or_else(|| name.clone());
+                    let value = inquire::Select::new(&prompt, choices)
                         .with_starting_cursor(default)
                         .prompt()
                         .unwrap();
-                    prompt_context.insert(prompt_config.name, &value);
+                    prompt_context.insert(name, &value);
                 }
-                petridish::config::NumberPrompt::Input { default, min, max } => {
+                NumberPrompt2::Input(NumberInput {
+                    name,
+                    prompt,
+                    default,
+                    min,
+                    max,
+                }) => {
+                    let prompt = prompt.unwrap_or_else(|| name.clone());
                     let default = default.unwrap_or_default();
+
                     let value = match (min, max) {
-                        (Some(min), Some(max)) => inquire::CustomType::<f64>::new(&prompt_msg)
+                        (Some(min), Some(max)) => inquire::CustomType::<f64>::new(&prompt)
                             .with_default((default, &|v| v.to_string()))
                             .with_error_message("Please type a valid number")
                             .with_help_message(&format!("range: {} <= value <= {}", min, max))
@@ -222,7 +249,7 @@ fn main() -> Result<()> {
                             })
                             .prompt()
                             .unwrap(),
-                        (Some(min), None) => inquire::CustomType::<f64>::new(&prompt_msg)
+                        (Some(min), None) => inquire::CustomType::<f64>::new(&prompt)
                             .with_default((default, &|v| v.to_string()))
                             .with_error_message("Please type a valid number")
                             .with_help_message(&format!("range: {} <= value", min))
@@ -236,7 +263,7 @@ fn main() -> Result<()> {
                             })
                             .prompt()
                             .unwrap(),
-                        (None, Some(max)) => inquire::CustomType::<f64>::new(&prompt_msg)
+                        (None, Some(max)) => inquire::CustomType::<f64>::new(&prompt)
                             .with_default((default, &|v| v.to_string()))
                             .with_error_message("Please type a valid number")
                             .with_help_message(&format!("range: value <= {}", max))
@@ -250,22 +277,27 @@ fn main() -> Result<()> {
                             })
                             .prompt()
                             .unwrap(),
-                        _ => inquire::CustomType::<f64>::new(&prompt_msg)
+                        _ => inquire::CustomType::<f64>::new(&prompt)
                             .with_default((default, &|v| v.to_string()))
                             .with_error_message("Please type a valid number")
                             .prompt()
                             .unwrap(),
                     };
 
-                    prompt_context.insert(prompt_config.name, &value);
+                    prompt_context.insert(name, &value);
                 }
             },
-            petridish::config::PromptType::Bool(BoolPrompt { default }) => {
-                let value = inquire::Confirm::new(&prompt_msg)
+            PromptType2::Bool(BoolPrompt2::Confirm(Confirm {
+                name,
+                prompt,
+                default,
+            })) => {
+                let prompt = prompt.unwrap_or_else(|| name.clone());
+                let value = inquire::Confirm::new(&prompt)
                     .with_default(default)
                     .prompt()
                     .unwrap();
-                prompt_context.insert(prompt_config.name, &value);
+                prompt_context.insert(name, &value);
             }
         }
     }
