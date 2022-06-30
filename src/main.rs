@@ -115,7 +115,7 @@ fn main() -> Result<()> {
             .unwrap_or_else(|| prompt_config.name.clone());
         match prompt_config.prompt_type {
             petridish::config::PromptType::String(v) => match v {
-                petridish::config::StringPrompt::MultiSelector {
+                petridish::config::StringPrompt::MultiSelect {
                     multi: _,
                     choices,
                     default,
@@ -139,7 +139,7 @@ fn main() -> Result<()> {
 
                     prompt_context.insert(prompt_config.name, &selections);
                 }
-                petridish::config::StringPrompt::SingleSelector { choices, default } => {
+                petridish::config::StringPrompt::Select { choices, default } => {
                     let default: usize = match default {
                         Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
@@ -150,7 +150,7 @@ fn main() -> Result<()> {
                         .unwrap();
                     prompt_context.insert(prompt_config.name, &value);
                 }
-                petridish::config::StringPrompt::Normal { default, regex } => {
+                petridish::config::StringPrompt::Input { default, regex } => {
                     let default = default.unwrap_or_default();
                     let regex = regex::Regex::new(&regex.unwrap_or_else(|| ".*".into())).unwrap();
                     let value = inquire::Text::new(&prompt_msg)
@@ -170,7 +170,7 @@ fn main() -> Result<()> {
                 }
             },
             petridish::config::PromptType::Number(v) => match v {
-                petridish::config::NumberPrompt::MultiSelector {
+                petridish::config::NumberPrompt::MultiSelect {
                     multi: _,
                     choices,
                     default,
@@ -194,7 +194,7 @@ fn main() -> Result<()> {
 
                     prompt_context.insert(prompt_config.name, &selections);
                 }
-                petridish::config::NumberPrompt::SingleSelector { choices, default } => {
+                petridish::config::NumberPrompt::Select { choices, default } => {
                     let default: usize = match default {
                         Some(default) => choices.iter().position(|i| i == &default).unwrap(),
                         None => 0,
@@ -205,7 +205,7 @@ fn main() -> Result<()> {
                         .unwrap();
                     prompt_context.insert(prompt_config.name, &value);
                 }
-                petridish::config::NumberPrompt::Normal { default, min, max } => {
+                petridish::config::NumberPrompt::Input { default, min, max } => {
                     let default = default.unwrap_or_default();
                     let value = match (min, max) {
                         (Some(min), Some(max)) => inquire::CustomType::<f64>::new(&prompt_msg)
