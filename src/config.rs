@@ -1,9 +1,11 @@
+use enum_dispatch::enum_dispatch;
 use std::fmt::Display;
 
+use inquire::validator::Validation;
 use serde::{Deserialize, Serialize};
+use tera::Context;
 
 use crate::literal_value::LiteralTrue;
-use inquire::validator::Validation;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Config {
@@ -38,8 +40,14 @@ impl Default for PetridishConfig {
     }
 }
 
+#[enum_dispatch]
+pub trait Prompt {
+    fn prompt(self, context: &mut Context);
+}
+
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
+#[enum_dispatch(Prompt)]
 pub enum PromptType {
     String(StringPrompt),
     Number(NumberPrompt),
@@ -48,6 +56,7 @@ pub enum PromptType {
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(untagged)]
+#[enum_dispatch(Prompt)]
 pub enum StringPrompt {
     MultiSelect(MultiSelect<String>),
     Select(Select<String>),
@@ -56,6 +65,7 @@ pub enum StringPrompt {
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(untagged)]
+#[enum_dispatch(Prompt)]
 pub enum NumberPrompt {
     MultiSelect(MultiSelect<f64>),
     Select(Select<f64>),
@@ -64,20 +74,21 @@ pub enum NumberPrompt {
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 #[serde(untagged)]
+#[enum_dispatch(Prompt)]
 pub enum BoolPrompt {
     Confirm(Confirm),
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct StringInput {
-    pub name: String,
-    pub prompt: Option<String>,
-    pub default: Option<String>,
-    pub regex: Option<String>,
+    name: String,
+    prompt: Option<String>,
+    default: Option<String>,
+    regex: Option<String>,
 }
 
-impl StringInput {
-    pub fn prompt(self) -> (String, impl Serialize) {
+impl Prompt for StringInput {
+    fn prompt(self, context: &mut Context) {
         let StringInput {
             name,
             prompt,
@@ -111,21 +122,21 @@ impl StringInput {
             prompt.prompt().unwrap()
         };
 
-        (name, value)
+        context.insert(name, &value)
     }
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct NumberInput {
-    pub name: String,
-    pub prompt: Option<String>,
-    pub default: Option<f64>,
-    pub min: Option<f64>,
-    pub max: Option<f64>,
+    name: String,
+    prompt: Option<String>,
+    default: Option<f64>,
+    min: Option<f64>,
+    max: Option<f64>,
 }
 
-impl NumberInput {
-    pub fn prompt(self) -> (String, impl Serialize) {
+impl Prompt for NumberInput {
+    fn prompt(self, context: &mut Context) {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let default = self.default.or(self.min).unwrap_or_default();
 
@@ -179,23 +190,23 @@ impl NumberInput {
                 .unwrap(),
         };
 
-        (self.name, value)
+        context.insert(self.name, &value)
     }
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct Select<T> {
-    pub name: String,
-    pub prompt: Option<String>,
-    pub choices: Vec<T>,
-    pub default: Option<T>,
+    name: String,
+    prompt: Option<String>,
+    choices: Vec<T>,
+    default: Option<T>,
 }
 
-impl<T> Select<T>
+impl<T> Prompt for Select<T>
 where
     T: Serialize + PartialEq + Display,
 {
-    pub fn prompt(self) -> (String, impl Serialize) {
+    fn prompt(self, context: &mut Context) {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let default: usize = match self.default {
             Some(default) => self.choices.iter().position(|i| i == &default).unwrap(),
@@ -206,24 +217,24 @@ where
             .prompt()
             .unwrap();
 
-        (self.name, value)
+        context.insert(self.name, &value)
     }
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct MultiSelect<T> {
-    pub multi: LiteralTrue,
-    pub name: String,
-    pub prompt: Option<String>,
-    pub choices: Vec<T>,
-    pub default: Option<Vec<T>>,
+    multi: LiteralTrue,
+    name: String,
+    prompt: Option<String>,
+    choices: Vec<T>,
+    default: Option<Vec<T>>,
 }
 
-impl<T> MultiSelect<T>
+impl<T> Prompt for MultiSelect<T>
 where
     T: Serialize + PartialEq + Display,
 {
-    pub fn prompt(self) -> (String, impl Serialize) {
+    fn prompt(self, context: &mut Context) {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let defaults = {
             match self.default {
@@ -243,7 +254,7 @@ where
             .prompt()
             .unwrap();
 
-        (self.name, selections)
+        context.insert(self.name, &selections)
     }
 }
 
@@ -255,15 +266,15 @@ pub struct Confirm {
     pub default: bool,
 }
 
-impl Confirm {
-    pub fn prompt(self) -> (String, impl Serialize) {
+impl Prompt for Confirm {
+    fn prompt(self, context: &mut Context) {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let value = inquire::Confirm::new(&prompt)
             .with_default(self.default)
             .prompt()
             .unwrap();
 
-        (self.name, value)
+        context.insert(self.name, &value)
     }
 }
 

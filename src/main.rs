@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use clap::{builder::ArgAction, Parser};
 use petridish::{
-    config::*,
+    config::{Config, Prompt},
     error::{Error, Result},
     render::Render,
     try_new_repo,
@@ -109,40 +109,7 @@ fn main() -> Result<()> {
         &project_name,
     );
     for prompt_type in petridish_config.prompts {
-        match prompt_type {
-            PromptType::String(v) => match v {
-                StringPrompt::MultiSelect(t) => {
-                    let (name, selections) = t.prompt();
-                    prompt_context.insert(name, &selections);
-                }
-                StringPrompt::Select(t) => {
-                    let (name, value) = t.prompt();
-                    prompt_context.insert(name, &value);
-                }
-                StringPrompt::Input(t) => {
-                    let (name, value) = t.prompt();
-                    prompt_context.insert(name, &value);
-                }
-            },
-            PromptType::Number(v) => match v {
-                NumberPrompt::MultiSelect(t) => {
-                    let (name, selections) = t.prompt();
-                    prompt_context.insert(name, &selections);
-                }
-                NumberPrompt::Select(t) => {
-                    let (name, value) = t.prompt();
-                    prompt_context.insert(name, &value);
-                }
-                NumberPrompt::Input(t) => {
-                    let (name, value) = t.prompt();
-                    prompt_context.insert(name, &value);
-                }
-            },
-            PromptType::Bool(BoolPrompt::Confirm(t)) => {
-                let (name, value) = t.prompt();
-                prompt_context.insert(name, &value);
-            }
-        }
+        prompt_type.prompt(&mut prompt_context)
     }
 
     let output_path = args.output_dir.unwrap_or_default();
