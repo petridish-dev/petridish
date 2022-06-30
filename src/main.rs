@@ -86,7 +86,7 @@ fn main() -> Result<()> {
     }
 
     let petridish_config =
-        toml::from_str::<Config2>(&read_to_string(petridish_config).unwrap()).unwrap();
+        toml::from_str::<Config>(&read_to_string(petridish_config).unwrap()).unwrap();
     let entry_dir_name = format!(
         "{{{{ {} }}}}",
         petridish_config.petridish_config.project_var_name
@@ -111,8 +111,8 @@ fn main() -> Result<()> {
     );
     for prompt_type in petridish_config.prompts {
         match prompt_type {
-            PromptType2::String(v) => match v {
-                StringPrompt2::MultiSelect(MultiSelect {
+            PromptType::String(v) => match v {
+                StringPrompt::MultiSelect(MultiSelect {
                     multi: _,
                     name,
                     prompt,
@@ -138,7 +138,7 @@ fn main() -> Result<()> {
 
                     prompt_context.insert(name, &selections);
                 }
-                StringPrompt2::Select(Select {
+                StringPrompt::Select(Select {
                     name,
                     prompt,
                     choices,
@@ -155,7 +155,7 @@ fn main() -> Result<()> {
                         .unwrap();
                     prompt_context.insert(name, &value);
                 }
-                StringPrompt2::Input(StringInput {
+                StringPrompt::Input(StringInput {
                     name,
                     prompt,
                     default,
@@ -180,8 +180,8 @@ fn main() -> Result<()> {
                     prompt_context.insert(name, &value);
                 }
             },
-            PromptType2::Number(v) => match v {
-                NumberPrompt2::MultiSelect(MultiSelect {
+            PromptType::Number(v) => match v {
+                NumberPrompt::MultiSelect(MultiSelect {
                     multi: _,
                     name,
                     prompt,
@@ -207,7 +207,7 @@ fn main() -> Result<()> {
 
                     prompt_context.insert(name, &selections);
                 }
-                NumberPrompt2::Select(Select {
+                NumberPrompt::Select(Select {
                     name,
                     prompt,
                     choices,
@@ -224,7 +224,7 @@ fn main() -> Result<()> {
                         .unwrap();
                     prompt_context.insert(name, &value);
                 }
-                NumberPrompt2::Input(NumberInput {
+                NumberPrompt::Input(NumberInput {
                     name,
                     prompt,
                     default,
@@ -287,7 +287,7 @@ fn main() -> Result<()> {
                     prompt_context.insert(name, &value);
                 }
             },
-            PromptType2::Bool(BoolPrompt2::Confirm(Confirm {
+            PromptType::Bool(BoolPrompt::Confirm(Confirm {
                 name,
                 prompt,
                 default,

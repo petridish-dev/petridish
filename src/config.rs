@@ -7,15 +7,7 @@ pub struct Config {
     #[serde(default, rename(deserialize = "petridish"))]
     pub petridish_config: PetridishConfig,
     #[serde(default)]
-    pub prompts: Vec<PromptConfig>,
-}
-
-#[derive(Deserialize, Debug, PartialEq)]
-pub struct Config2 {
-    #[serde(default, rename(deserialize = "petridish"))]
-    pub petridish_config: PetridishConfig,
-    #[serde(default)]
-    pub prompts: Vec<PromptType2>,
+    pub prompts: Vec<PromptType>,
 }
 
 #[derive(Deserialize, Debug, PartialEq, Eq)]
@@ -41,6 +33,36 @@ impl Default for PetridishConfig {
             project_var_name: default_project_var_name(),
         }
     }
+}
+
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
+pub enum PromptType {
+    String(StringPrompt),
+    Number(NumberPrompt),
+    Bool(BoolPrompt),
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum StringPrompt {
+    MultiSelect(MultiSelect<String>),
+    Select(Select<String>),
+    Input(StringInput),
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum NumberPrompt {
+    MultiSelect(MultiSelect<f64>),
+    Select(Select<f64>),
+    Input(NumberInput),
+}
+
+#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum BoolPrompt {
+    Confirm(Confirm),
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -85,95 +107,6 @@ pub struct Confirm {
     pub default: bool,
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
-#[serde(untagged)]
-pub enum StringPrompt2 {
-    MultiSelect(MultiSelect<String>),
-    Select(Select<String>),
-    Input(StringInput),
-}
-
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
-#[serde(untagged)]
-pub enum NumberPrompt2 {
-    MultiSelect(MultiSelect<f64>),
-    Select(Select<f64>),
-    Input(NumberInput),
-}
-
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
-#[serde(untagged)]
-pub enum BoolPrompt2 {
-    Confirm(Confirm),
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum PromptType2 {
-    String(StringPrompt2),
-    Number(NumberPrompt2),
-    Bool(BoolPrompt2),
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-pub struct PromptConfig {
-    pub name: String,
-    pub prompt: Option<String>,
-    #[serde(flatten)]
-    pub prompt_type: PromptType,
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-#[serde(tag = "type", rename_all = "lowercase")]
-pub enum PromptType {
-    String(StringPrompt),
-    Number(NumberPrompt),
-    Bool(BoolPrompt),
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum StringPrompt {
-    MultiSelect {
-        multi: LiteralTrue,
-        choices: Vec<String>,
-        default: Option<Vec<String>>,
-    },
-    Select {
-        choices: Vec<String>,
-        default: Option<String>,
-    },
-    Input {
-        default: Option<String>,
-        regex: Option<String>,
-    },
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-#[serde(untagged)]
-pub enum NumberPrompt {
-    MultiSelect {
-        multi: LiteralTrue,
-        choices: Vec<f64>,
-        default: Option<Vec<f64>>,
-    },
-    Select {
-        choices: Vec<f64>,
-        default: Option<f64>,
-    },
-    Input {
-        default: Option<f64>,
-        min: Option<f64>,
-        max: Option<f64>,
-    },
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-pub struct BoolPrompt {
-    #[serde(default)]
-    pub default: bool,
-}
-
 #[cfg(test)]
 mod tests {
     use std::vec;
@@ -187,8 +120,8 @@ mod tests {
         prompt="hello"
         type="number"        
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Number(NumberPrompt2::Input(NumberInput {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Number(NumberPrompt::Input(NumberInput {
             name: "var".into(),
             prompt: Some("hello".into()),
             max: None,
@@ -206,8 +139,8 @@ mod tests {
         type="number"        
         default=1
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Number(NumberPrompt2::Input(NumberInput {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Number(NumberPrompt::Input(NumberInput {
             name: "var".into(),
             prompt: Some("hello".into()),
             max: None,
@@ -226,8 +159,8 @@ mod tests {
         min=1
         max=20
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Number(NumberPrompt2::Input(NumberInput {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Number(NumberPrompt::Input(NumberInput {
             name: "var".into(),
             prompt: Some("hello".into()),
             min: Some(1_f64),
@@ -244,8 +177,8 @@ mod tests {
         prompt="hello"
         type="string"
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::String(StringPrompt2::Input(StringInput {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::String(StringPrompt::Input(StringInput {
             name: "var".into(),
             prompt: Some("hello".into()),
             regex: None,
@@ -262,8 +195,8 @@ mod tests {
         type="string"
         default="rust"
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::String(StringPrompt2::Input(StringInput {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::String(StringPrompt::Input(StringInput {
             name: "var".into(),
             prompt: Some("hello".into()),
             regex: None,
@@ -280,8 +213,8 @@ mod tests {
         type="string"
         regex=".*"
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::String(StringPrompt2::Input(StringInput {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::String(StringPrompt::Input(StringInput {
             name: "var".into(),
             prompt: Some("hello".into()),
             regex: Some(".*".into()),
@@ -297,8 +230,8 @@ mod tests {
         prompt="ok?"
         type="bool"
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Bool(BoolPrompt2::Confirm(Confirm {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Bool(BoolPrompt::Confirm(Confirm {
             name: "var".into(),
             prompt: Some("ok?".into()),
             default: false,
@@ -314,8 +247,8 @@ mod tests {
         type="bool"
         default=true
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Bool(BoolPrompt2::Confirm(Confirm {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Bool(BoolPrompt::Confirm(Confirm {
             name: "var".into(),
             prompt: Some("ok?".into()),
             default: true,
@@ -331,8 +264,8 @@ mod tests {
         choices=[10, 20, 30]
         type="number"
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Number(NumberPrompt2::Select(Select {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Number(NumberPrompt::Select(Select {
             name: "var".into(),
             prompt: Some("age".into()),
             choices: vec![10_f64, 20_f64, 30_f64],
@@ -350,8 +283,8 @@ mod tests {
         type="number"
         default=10
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Number(NumberPrompt2::Select(Select {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Number(NumberPrompt::Select(Select {
             name: "var".into(),
             prompt: Some("age".into()),
             choices: vec![10_f64, 20_f64, 30_f64],
@@ -368,8 +301,8 @@ mod tests {
         choices=["a", "b", "c"]
         type="string"
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::String(StringPrompt2::Select(Select {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::String(StringPrompt::Select(Select {
             name: "var".into(),
             prompt: Some("name".into()),
             choices: vec!["a".into(), "b".into(), "c".into()],
@@ -387,8 +320,8 @@ mod tests {
         type="string"
         default="a"
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::String(StringPrompt2::Select(Select {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::String(StringPrompt::Select(Select {
             name: "var".into(),
             prompt: Some("name".into()),
             choices: vec!["a".into(), "b".into(), "c".into()],
@@ -406,8 +339,8 @@ mod tests {
         type="number"
         multi=true
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Number(NumberPrompt2::MultiSelect(MultiSelect {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Number(NumberPrompt::MultiSelect(MultiSelect {
             multi: LiteralTrue,
             name: "var".into(),
             prompt: Some("age".into()),
@@ -427,8 +360,8 @@ mod tests {
         multi=true
         default=[10]
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::Number(NumberPrompt2::MultiSelect(MultiSelect {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::Number(NumberPrompt::MultiSelect(MultiSelect {
             multi: LiteralTrue,
             name: "var".into(),
             prompt: Some("age".into()),
@@ -447,8 +380,8 @@ mod tests {
         type="string"
         multi=true
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::String(StringPrompt2::MultiSelect(MultiSelect {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::String(StringPrompt::MultiSelect(MultiSelect {
             multi: LiteralTrue,
             name: "var".into(),
             prompt: Some("name".into()),
@@ -468,8 +401,8 @@ mod tests {
         multi=true
         default=["a"]
         "#;
-        let parsed = toml::from_str::<PromptType2>(config).unwrap();
-        let expected = PromptType2::String(StringPrompt2::MultiSelect(MultiSelect {
+        let parsed = toml::from_str::<PromptType>(config).unwrap();
+        let expected = PromptType::String(StringPrompt::MultiSelect(MultiSelect {
             multi: LiteralTrue,
             name: "var".into(),
             prompt: Some("name".into()),
@@ -486,10 +419,10 @@ mod tests {
         project_prompt = "what's your project name?"
         project_var_name = "project"
         "#;
-        let parsed = toml::from_str::<Config2>(config).unwrap();
+        let parsed = toml::from_str::<Config>(config).unwrap();
         assert_eq!(
             parsed,
-            Config2 {
+            Config {
                 petridish_config: PetridishConfig {
                     project_prompt: "what's your project name?".into(),
                     project_var_name: "project".into()
@@ -502,10 +435,10 @@ mod tests {
     #[test]
     fn test_deserialize_empty_config() {
         let config = "";
-        let parsed = toml::from_str::<Config2>(config).unwrap();
+        let parsed = toml::from_str::<Config>(config).unwrap();
         assert_eq!(
             parsed,
-            Config2 {
+            Config {
                 petridish_config: PetridishConfig {
                     project_prompt: "project name?".into(),
                     project_var_name: "project_name".into()
@@ -552,41 +485,41 @@ mod tests {
         type = "string"
         choices = ["Chinese", "American", "Japanese"]
         "#;
-        let parsed = toml::from_str::<Config2>(config).unwrap();
+        let parsed = toml::from_str::<Config>(config).unwrap();
         assert_eq!(
             parsed,
-            Config2 {
+            Config {
                 petridish_config: PetridishConfig {
                     project_prompt: "what's your project name?".into(),
                     project_var_name: "project".into()
                 },
                 prompts: vec![
-                    PromptType2::String(StringPrompt2::Input(StringInput {
+                    PromptType::String(StringPrompt::Input(StringInput {
                         name: "name".into(),
                         prompt: Some("what's your name?".into()),
                         default: None,
                         regex: None,
                     })),
-                    PromptType2::Number(NumberPrompt2::Input(NumberInput {
+                    PromptType::Number(NumberPrompt::Input(NumberInput {
                         name: "age".into(),
                         prompt: Some("what's your age?".into()),
                         default: None,
                         max: Some(150_f64),
                         min: None,
                     })),
-                    PromptType2::Bool(BoolPrompt2::Confirm(Confirm {
+                    PromptType::Bool(BoolPrompt::Confirm(Confirm {
                         name: "love_rust".into(),
                         prompt: Some("do you love rust?".into()),
                         default: true,
                     })),
-                    PromptType2::String(StringPrompt2::MultiSelect(MultiSelect {
+                    PromptType::String(StringPrompt::MultiSelect(MultiSelect {
                         name: "hobbies".into(),
                         prompt: Some("what's your hobbies?".into()),
                         choices: vec!["swimming".into(), "running".into(), "reading".into()],
                         default: None,
                         multi: LiteralTrue,
                     })),
-                    PromptType2::String(StringPrompt2::Select(Select {
+                    PromptType::String(StringPrompt::Select(Select {
                         name: "nationality".into(),
                         prompt: Some("what's your nationality?".into()),
                         choices: vec!["Chinese".into(), "American".into(), "Japanese".into()],
