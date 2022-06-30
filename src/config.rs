@@ -36,6 +36,14 @@ impl Default for PetridishConfig {
 }
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
+pub struct PromptConfig {
+    pub name: String,
+    pub prompt: Option<String>,
+    #[serde(flatten)]
+    pub prompt_type: PromptType,
+}
+
+#[derive(Deserialize, Debug, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum PromptType {
     String(StringPrompt),
@@ -84,14 +92,6 @@ pub enum NumberPrompt {
 pub struct BoolPrompt {
     #[serde(default)]
     pub default: bool,
-}
-
-#[derive(Deserialize, Debug, PartialEq, Serialize)]
-pub struct PromptConfig {
-    pub name: String,
-    pub prompt: Option<String>,
-    #[serde(flatten)]
-    pub prompt_type: PromptType,
 }
 
 #[cfg(test)]
