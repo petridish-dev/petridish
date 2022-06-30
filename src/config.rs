@@ -1,6 +1,9 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use crate::literal_value::LiteralTrue;
+use inquire::validator::Validation;
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Config {
@@ -73,6 +76,29 @@ pub struct StringInput {
     pub regex: Option<String>,
 }
 
+impl StringInput {
+    pub fn prompt(self) -> (String, impl Serialize) {
+        let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
+        let default = self.default.unwrap_or_default();
+        let regex = regex::Regex::new(&self.regex.unwrap_or_else(|| ".*".into())).unwrap();
+        let value = inquire::Text::new(&prompt)
+            .with_default(&default)
+            .with_validator(&|v| {
+                if regex.is_match(v) {
+                    Ok(Validation::Valid)
+                } else {
+                    Ok(Validation::Invalid(
+                        format!("'not match regex '{}'", regex).into(),
+                    ))
+                }
+            })
+            .prompt()
+            .unwrap();
+
+        (self.name, value)
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct NumberInput {
     pub name: String,
@@ -82,12 +108,90 @@ pub struct NumberInput {
     pub max: Option<f64>,
 }
 
+impl NumberInput {
+    pub fn prompt(self) -> (String, impl Serialize) {
+        let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
+        let default = self.default.unwrap_or_default();
+
+        let value = match (self.min, self.max) {
+            (Some(min), Some(max)) => inquire::CustomType::<f64>::new(&prompt)
+                .with_default((default, &|v| v.to_string()))
+                .with_error_message("Please type a valid number")
+                .with_help_message(&format!("range: {} <= value <= {}", min, max))
+                .with_parser(&|v| {
+                    let v = v.parse::<f64>().map_err(|_| ())?;
+                    if v < min || v > max {
+                        Err(())
+                    } else {
+                        Ok(v)
+                    }
+                })
+                .prompt()
+                .unwrap(),
+            (Some(min), None) => inquire::CustomType::<f64>::new(&prompt)
+                .with_default((default, &|v| v.to_string()))
+                .with_error_message("Please type a valid number")
+                .with_help_message(&format!("range: {} <= value", min))
+                .with_parser(&|v| {
+                    let v = v.parse::<f64>().map_err(|_| ())?;
+                    if v < min {
+                        Err(())
+                    } else {
+                        Ok(v)
+                    }
+                })
+                .prompt()
+                .unwrap(),
+            (None, Some(max)) => inquire::CustomType::<f64>::new(&prompt)
+                .with_default((default, &|v| v.to_string()))
+                .with_error_message("Please type a valid number")
+                .with_help_message(&format!("range: value <= {}", max))
+                .with_parser(&|v| {
+                    let v = v.parse::<f64>().map_err(|_| ())?;
+                    if v > max {
+                        Err(())
+                    } else {
+                        Ok(v)
+                    }
+                })
+                .prompt()
+                .unwrap(),
+            _ => inquire::CustomType::<f64>::new(&prompt)
+                .with_default((default, &|v| v.to_string()))
+                .with_error_message("Please type a valid number")
+                .prompt()
+                .unwrap(),
+        };
+
+        (self.name, value)
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct Select<T> {
     pub name: String,
     pub prompt: Option<String>,
     pub choices: Vec<T>,
     pub default: Option<T>,
+}
+
+impl<T> Select<T>
+where
+    T: Serialize + PartialEq + Display,
+{
+    pub fn prompt(self) -> (String, impl Serialize) {
+        let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
+        let default: usize = match self.default {
+            Some(default) => self.choices.iter().position(|i| i == &default).unwrap(),
+            None => 0,
+        };
+        let value = inquire::Select::new(&prompt, self.choices)
+            .with_starting_cursor(default)
+            .prompt()
+            .unwrap();
+
+        (self.name, value)
+    }
 }
 
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
@@ -99,12 +203,52 @@ pub struct MultiSelect<T> {
     pub default: Option<Vec<T>>,
 }
 
+impl<T> MultiSelect<T>
+where
+    T: Serialize + PartialEq + Display,
+{
+    pub fn prompt(self) -> (String, impl Serialize) {
+        let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
+        let defaults = {
+            match self.default {
+                Some(default) => self
+                    .choices
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, choice)| default.contains(choice))
+                    .map(|(idx, _)| idx)
+                    .collect(),
+                None => vec![],
+            }
+        };
+
+        let selections = inquire::MultiSelect::new(&prompt, self.choices)
+            .with_default(&defaults)
+            .prompt()
+            .unwrap();
+
+        (self.name, selections)
+    }
+}
+
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct Confirm {
     pub name: String,
     pub prompt: Option<String>,
     #[serde(default)]
     pub default: bool,
+}
+
+impl Confirm {
+    pub fn prompt(self) -> (String, impl Serialize) {
+        let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
+        let value = inquire::Confirm::new(&prompt)
+            .with_default(self.default)
+            .prompt()
+            .unwrap();
+
+        (self.name, value)
+    }
 }
 
 #[cfg(test)]

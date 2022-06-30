@@ -2,7 +2,6 @@ use std::fs::read_to_string;
 use std::{collections::HashMap, path::PathBuf};
 
 use clap::{builder::ArgAction, Parser};
-use inquire::validator::Validation;
 use petridish::{
     config::*,
     error::{Error, Result},
@@ -112,191 +111,35 @@ fn main() -> Result<()> {
     for prompt_type in petridish_config.prompts {
         match prompt_type {
             PromptType::String(v) => match v {
-                StringPrompt::MultiSelect(MultiSelect {
-                    multi: _,
-                    name,
-                    prompt,
-                    choices,
-                    default,
-                }) => {
-                    let defaults = {
-                        match default {
-                            Some(default) => choices
-                                .iter()
-                                .enumerate()
-                                .filter(|(_, choice)| default.contains(choice))
-                                .map(|(idx, _)| idx)
-                                .collect(),
-                            None => vec![],
-                        }
-                    };
-                    let prompt = prompt.unwrap_or_else(|| name.clone());
-                    let selections = inquire::MultiSelect::new(&prompt, choices)
-                        .with_default(&defaults)
-                        .prompt()
-                        .unwrap();
-
+                StringPrompt::MultiSelect(t) => {
+                    let (name, selections) = t.prompt();
                     prompt_context.insert(name, &selections);
                 }
-                StringPrompt::Select(Select {
-                    name,
-                    prompt,
-                    choices,
-                    default,
-                }) => {
-                    let default: usize = match default {
-                        Some(default) => choices.iter().position(|i| i == &default).unwrap(),
-                        None => 0,
-                    };
-                    let prompt = prompt.unwrap_or_else(|| name.clone());
-                    let value = inquire::Select::new(&prompt, choices)
-                        .with_starting_cursor(default)
-                        .prompt()
-                        .unwrap();
+                StringPrompt::Select(t) => {
+                    let (name, value) = t.prompt();
                     prompt_context.insert(name, &value);
                 }
-                StringPrompt::Input(StringInput {
-                    name,
-                    prompt,
-                    default,
-                    regex,
-                }) => {
-                    let prompt = prompt.unwrap_or_else(|| name.clone());
-                    let default = default.unwrap_or_default();
-                    let regex = regex::Regex::new(&regex.unwrap_or_else(|| ".*".into())).unwrap();
-                    let value = inquire::Text::new(&prompt)
-                        .with_default(&default)
-                        .with_validator(&|v| {
-                            if regex.is_match(v) {
-                                Ok(Validation::Valid)
-                            } else {
-                                Ok(Validation::Invalid(
-                                    format!("'not match regex '{}'", regex).into(),
-                                ))
-                            }
-                        })
-                        .prompt()
-                        .unwrap();
+                StringPrompt::Input(t) => {
+                    let (name, value) = t.prompt();
                     prompt_context.insert(name, &value);
                 }
             },
             PromptType::Number(v) => match v {
-                NumberPrompt::MultiSelect(MultiSelect {
-                    multi: _,
-                    name,
-                    prompt,
-                    choices,
-                    default,
-                }) => {
-                    let defaults = {
-                        match default {
-                            Some(default) => choices
-                                .iter()
-                                .enumerate()
-                                .filter(|(_, choice)| default.contains(choice))
-                                .map(|(idx, _)| idx)
-                                .collect(),
-                            None => vec![],
-                        }
-                    };
-                    let prompt = prompt.unwrap_or_else(|| name.clone());
-                    let selections = inquire::MultiSelect::new(&prompt, choices)
-                        .with_default(&defaults)
-                        .prompt()
-                        .unwrap();
-
+                NumberPrompt::MultiSelect(t) => {
+                    let (name, selections) = t.prompt();
                     prompt_context.insert(name, &selections);
                 }
-                NumberPrompt::Select(Select {
-                    name,
-                    prompt,
-                    choices,
-                    default,
-                }) => {
-                    let default: usize = match default {
-                        Some(default) => choices.iter().position(|i| i == &default).unwrap(),
-                        None => 0,
-                    };
-                    let prompt = prompt.unwrap_or_else(|| name.clone());
-                    let value = inquire::Select::new(&prompt, choices)
-                        .with_starting_cursor(default)
-                        .prompt()
-                        .unwrap();
+                NumberPrompt::Select(t) => {
+                    let (name, value) = t.prompt();
                     prompt_context.insert(name, &value);
                 }
-                NumberPrompt::Input(NumberInput {
-                    name,
-                    prompt,
-                    default,
-                    min,
-                    max,
-                }) => {
-                    let prompt = prompt.unwrap_or_else(|| name.clone());
-                    let default = default.unwrap_or_default();
-
-                    let value = match (min, max) {
-                        (Some(min), Some(max)) => inquire::CustomType::<f64>::new(&prompt)
-                            .with_default((default, &|v| v.to_string()))
-                            .with_error_message("Please type a valid number")
-                            .with_help_message(&format!("range: {} <= value <= {}", min, max))
-                            .with_parser(&|v| {
-                                let v = v.parse::<f64>().map_err(|_| ())?;
-                                if v < min || v > max {
-                                    Err(())
-                                } else {
-                                    Ok(v)
-                                }
-                            })
-                            .prompt()
-                            .unwrap(),
-                        (Some(min), None) => inquire::CustomType::<f64>::new(&prompt)
-                            .with_default((default, &|v| v.to_string()))
-                            .with_error_message("Please type a valid number")
-                            .with_help_message(&format!("range: {} <= value", min))
-                            .with_parser(&|v| {
-                                let v = v.parse::<f64>().map_err(|_| ())?;
-                                if v < min {
-                                    Err(())
-                                } else {
-                                    Ok(v)
-                                }
-                            })
-                            .prompt()
-                            .unwrap(),
-                        (None, Some(max)) => inquire::CustomType::<f64>::new(&prompt)
-                            .with_default((default, &|v| v.to_string()))
-                            .with_error_message("Please type a valid number")
-                            .with_help_message(&format!("range: value <= {}", max))
-                            .with_parser(&|v| {
-                                let v = v.parse::<f64>().map_err(|_| ())?;
-                                if v > max {
-                                    Err(())
-                                } else {
-                                    Ok(v)
-                                }
-                            })
-                            .prompt()
-                            .unwrap(),
-                        _ => inquire::CustomType::<f64>::new(&prompt)
-                            .with_default((default, &|v| v.to_string()))
-                            .with_error_message("Please type a valid number")
-                            .prompt()
-                            .unwrap(),
-                    };
-
+                NumberPrompt::Input(t) => {
+                    let (name, value) = t.prompt();
                     prompt_context.insert(name, &value);
                 }
             },
-            PromptType::Bool(BoolPrompt::Confirm(Confirm {
-                name,
-                prompt,
-                default,
-            })) => {
-                let prompt = prompt.unwrap_or_else(|| name.clone());
-                let value = inquire::Confirm::new(&prompt)
-                    .with_default(default)
-                    .prompt()
-                    .unwrap();
+            PromptType::Bool(BoolPrompt::Confirm(t)) => {
+                let (name, value) = t.prompt();
                 prompt_context.insert(name, &value);
             }
         }
