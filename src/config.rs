@@ -127,7 +127,7 @@ pub struct NumberInput {
 impl NumberInput {
     pub fn prompt(self) -> (String, impl Serialize) {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
-        let default = self.default.unwrap_or_default();
+        let default = self.default.or(self.min).unwrap_or_default();
 
         let value = match (self.min, self.max) {
             (Some(min), Some(max)) => inquire::CustomType::<f64>::new(&prompt)
