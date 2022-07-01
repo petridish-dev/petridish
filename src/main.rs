@@ -3,6 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use anyhow::Result;
 use clap::{builder::ArgAction, Parser};
+use inquire::error::InquireError;
 use petridish::{
     config::{Config, Prompt},
     error::Error,
@@ -57,7 +58,7 @@ struct Args {
     branch: Option<String>,
 }
 
-fn main() -> Result<()> {
+fn entry() -> Result<()> {
     let args = Args::parse();
     let mut context = HashMap::new();
     if let Some(auth) = args.auth.as_ref() {
@@ -104,7 +105,7 @@ fn main() -> Result<()> {
         &project_name,
     );
     for prompt_type in petridish_config.prompts {
-        prompt_type.prompt(&mut prompt_context)
+        prompt_type.prompt(&mut prompt_context)?;
     }
 
     let output_path = args.output_dir.unwrap_or_default();
@@ -115,6 +116,22 @@ fn main() -> Result<()> {
         prompt_context,
     )?;
     render.render()?;
+
+    Ok(())
+}
+
+fn main() -> Result<()> {
+    if let Err(e) = entry() {
+        if let Some(e) = e.downcast_ref::<InquireError>() {
+            if matches!(
+                e,
+                InquireError::OperationCanceled | InquireError::OperationInterrupted
+            ) {
+                return Ok(());
+            }
+        }
+        return Err(e)?;
+    }
 
     Ok(())
 }

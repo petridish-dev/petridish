@@ -5,7 +5,7 @@ use inquire::validator::Validation;
 use serde::{Deserialize, Serialize};
 use tera::Context;
 
-use crate::literal_value::LiteralTrue;
+use crate::{error::Result, literal_value::LiteralTrue};
 
 #[derive(Deserialize, Debug, PartialEq)]
 pub struct Config {
@@ -42,7 +42,7 @@ impl Default for PetridishConfig {
 
 #[enum_dispatch]
 pub trait Prompt {
-    fn prompt(self, context: &mut Context);
+    fn prompt(self, context: &mut Context) -> Result<()>;
 }
 
 #[derive(Deserialize, Debug, PartialEq, Serialize)]
@@ -88,7 +88,7 @@ pub struct StringInput {
 }
 
 impl Prompt for StringInput {
-    fn prompt(self, context: &mut Context) {
+    fn prompt(self, context: &mut Context) -> Result<()> {
         let StringInput {
             name,
             prompt,
@@ -117,12 +117,14 @@ impl Prompt for StringInput {
 
             prompt.validators.push(&validator);
             prompt.help_message = Some(&help_msg);
-            prompt.prompt().unwrap()
+            prompt.prompt()?
         } else {
-            prompt.prompt().unwrap()
+            prompt.prompt()?
         };
 
-        context.insert(name, &value)
+        context.insert(name, &value);
+
+        Ok(())
     }
 }
 
@@ -136,7 +138,7 @@ pub struct NumberInput {
 }
 
 impl Prompt for NumberInput {
-    fn prompt(self, context: &mut Context) {
+    fn prompt(self, context: &mut Context) -> Result<()> {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let default = self.default.or(self.min).unwrap_or_default();
 
@@ -153,8 +155,7 @@ impl Prompt for NumberInput {
                         Ok(v)
                     }
                 })
-                .prompt()
-                .unwrap(),
+                .prompt()?,
             (Some(min), None) => inquire::CustomType::<f64>::new(&prompt)
                 .with_default((default, &|v| v.to_string()))
                 .with_error_message("Please type a valid number")
@@ -167,8 +168,7 @@ impl Prompt for NumberInput {
                         Ok(v)
                     }
                 })
-                .prompt()
-                .unwrap(),
+                .prompt()?,
             (None, Some(max)) => inquire::CustomType::<f64>::new(&prompt)
                 .with_default((default, &|v| v.to_string()))
                 .with_error_message("Please type a valid number")
@@ -181,16 +181,15 @@ impl Prompt for NumberInput {
                         Ok(v)
                     }
                 })
-                .prompt()
-                .unwrap(),
+                .prompt()?,
             _ => inquire::CustomType::<f64>::new(&prompt)
                 .with_default((default, &|v| v.to_string()))
                 .with_error_message("Please type a valid number")
-                .prompt()
-                .unwrap(),
+                .prompt()?,
         };
 
-        context.insert(self.name, &value)
+        context.insert(self.name, &value);
+        Ok(())
     }
 }
 
@@ -206,7 +205,7 @@ impl<T> Prompt for Select<T>
 where
     T: Serialize + PartialEq + Display,
 {
-    fn prompt(self, context: &mut Context) {
+    fn prompt(self, context: &mut Context) -> Result<()> {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let default: usize = match self.default {
             Some(default) => self.choices.iter().position(|i| i == &default).unwrap(),
@@ -214,10 +213,10 @@ where
         };
         let value = inquire::Select::new(&prompt, self.choices)
             .with_starting_cursor(default)
-            .prompt()
-            .unwrap();
+            .prompt()?;
 
-        context.insert(self.name, &value)
+        context.insert(self.name, &value);
+        Ok(())
     }
 }
 
@@ -234,7 +233,7 @@ impl<T> Prompt for MultiSelect<T>
 where
     T: Serialize + PartialEq + Display,
 {
-    fn prompt(self, context: &mut Context) {
+    fn prompt(self, context: &mut Context) -> Result<()> {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let defaults = {
             match self.default {
@@ -251,10 +250,10 @@ where
 
         let selections = inquire::MultiSelect::new(&prompt, self.choices)
             .with_default(&defaults)
-            .prompt()
-            .unwrap();
+            .prompt()?;
 
-        context.insert(self.name, &selections)
+        context.insert(self.name, &selections);
+        Ok(())
     }
 }
 
@@ -267,14 +266,14 @@ pub struct Confirm {
 }
 
 impl Prompt for Confirm {
-    fn prompt(self, context: &mut Context) {
+    fn prompt(self, context: &mut Context) -> Result<()> {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let value = inquire::Confirm::new(&prompt)
             .with_default(self.default)
-            .prompt()
-            .unwrap();
+            .prompt()?;
 
-        context.insert(self.name, &value)
+        context.insert(self.name, &value);
+        Ok(())
     }
 }
 

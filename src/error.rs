@@ -23,6 +23,9 @@ pub enum Error {
     AuthMissingUsername(String),
 
     #[error("{0}")]
+    PromptError(#[from] inquire::error::InquireError),
+
+    #[error("{0}")]
     ArgsError(String),
 }
 
