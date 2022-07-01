@@ -1,10 +1,11 @@
 use std::fs::read_to_string;
 use std::{collections::HashMap, path::PathBuf};
 
+use anyhow::Result;
 use clap::{builder::ArgAction, Parser};
 use petridish::{
     config::{Config, Prompt},
-    error::{Error, Result},
+    error::Error,
     render::Render,
     try_new_repo,
 };
@@ -62,10 +63,10 @@ fn main() -> Result<()> {
     if let Some(auth) = args.auth.as_ref() {
         let splitted_auth = auth.split(':').collect::<Vec<&str>>();
         if splitted_auth.len() != 2 {
-            return Err(Error::ArgsError(format!(
+            Err(Error::ArgsError(format!(
                 "auth '{}' is invalid, should be like <username>:<password>",
                 auth
-            )));
+            )))?;
         }
         context.insert("username".to_string(), splitted_auth[0].to_string());
         context.insert("password".to_string(), splitted_auth[1].to_string());
@@ -78,10 +79,7 @@ fn main() -> Result<()> {
     let repo = try_new_repo(args.template_uri, context)?;
     let petridish_config = repo.repo_dir().join("petridish.toml");
     if !petridish_config.exists() {
-        return Err(Error::ConfigNotFound(format!(
-            "{} not exists",
-            petridish_config.display()
-        )));
+        return Err(Error::PathNotFound(petridish_config))?;
     }
 
     let petridish_config =
@@ -92,18 +90,15 @@ fn main() -> Result<()> {
     );
     let entry_dir = repo.repo_dir().join(&entry_dir_name);
     if !entry_dir.exists() {
-        return Err(Error::InvalidRepo(format!(
-            "not found entry dir '{}'",
-            entry_dir.display()
-        )));
+        return Err(Error::PathNotFound(entry_dir))?;
     }
 
     // start prompting
     let mut prompt_context = Context::new();
 
-    let project_name = inquire::Text::new(&petridish_config.petridish_config.project_prompt)
-        .prompt()
-        .unwrap();
+    let project_name =
+        inquire::Text::new(&petridish_config.petridish_config.project_prompt).prompt()?;
+
     prompt_context.insert(
         petridish_config.petridish_config.project_var_name,
         &project_name,

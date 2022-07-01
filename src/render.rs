@@ -27,10 +27,7 @@ impl Render {
         let template_dir: PathBuf = template_path.into();
         let entry_dir = template_dir.join(entry_dir_name);
         if !entry_dir.exists() {
-            return Err(Error::RenderError(format!(
-                "\"{}\": no such directory",
-                entry_dir.display()
-            )));
+            Err(Error::PathNotFound(entry_dir))?;
         }
 
         Ok(Self {
@@ -65,11 +62,10 @@ impl Render {
                 }
             }
             let template_content = fs::read_to_string(entry.path()).unwrap();
-            fs::write(render_path, {
-                &tera
-                    .render_str(&template_content, &self.context)
-                    .map_err(|e| Error::RenderError(e.to_string()))?
-            })
+            fs::write(
+                render_path,
+                &tera.render_str(&template_content, &self.context)?,
+            )
             .unwrap();
         }
 
@@ -83,8 +79,7 @@ impl Render {
             .collect::<Vec<String>>();
         for rendered_file_path in rendered_file_paths {
             let rendered_path: PathBuf = tera
-                .render_str(&rendered_file_path, &self.context)
-                .map_err(|e| Error::RenderError(e.to_string()))?
+                .render_str(&rendered_file_path, &self.context)?
                 .replace(
                     tmp_dir.path().to_str().unwrap(),
                     tmp_dir2.path().to_str().unwrap(),
@@ -101,9 +96,7 @@ impl Render {
         }
 
         // move rendered project to output
-        let rendered_entry_dir_name = tera
-            .render_str(&self.entry_dir_name, &self.context)
-            .map_err(|e| Error::RenderError(e.to_string()))?;
+        let rendered_entry_dir_name = tera.render_str(&self.entry_dir_name, &self.context)?;
         let tmp_entry_path = tmp_dir2.path().join(&rendered_entry_dir_name);
         if !self.output_path.exists() {
             fs::create_dir_all(&self.output_path).unwrap();

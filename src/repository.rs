@@ -40,18 +40,22 @@ impl Git {
             return Git::new_git(uri, context);
         }
 
-        Err(Error::InvalidRepo(format!("'{}' is invalid git repo", uri)))
+        Err(Error::InvalidRepo {
+            kind: "git".into(),
+            uri,
+        })
     }
 
     fn new_git(uri: String, mut context: HashMap<String, String>) -> Result<Self> {
         let branch = context.remove("branch");
         let username = context.remove("username");
         let password = context.remove("password");
+
         if username.is_some() && password.is_none() {
-            return Err(Error::InvalidRepo("git `password` is not provided".into()));
+            return Err(Error::AuthMissingPassword("git".into()));
         }
         if username.is_none() && password.is_some() {
-            return Err(Error::InvalidRepo("git `username` is not provided".into()));
+            return Err(Error::AuthMissingUsername("git".into()));
         }
         let auth = if let (Some(username), Some(password)) = (username, password) {
             Some(Auth { username, password })
@@ -62,7 +66,10 @@ impl Git {
         if uri.starts_with("https://") || uri.starts_with("http://") || uri.starts_with("git@") {
             Ok(Self { uri, branch, auth })
         } else {
-            Err(Error::InvalidRepo(format!("'{}' is invalid git repo", uri)))
+            Err(Error::InvalidRepo {
+                kind: "git".into(),
+                uri,
+            })
         }
     }
 
@@ -90,10 +97,10 @@ impl Git {
         } else if head == format!("{}+ssh", alias) {
             format!("git@{}:{}.git", provider_url, tail)
         } else {
-            return Err(Error::InvalidRepo(format!(
-                "{} is invalid `{}` repo",
-                alias_uri, provider
-            )));
+            return Err(Error::InvalidGitAliasRepo {
+                alias: alias_uri,
+                provider: provider.to_string(),
+            });
         };
 
         Self::new_git(url, context)
@@ -122,10 +129,7 @@ struct LocalPath(PathBuf);
 impl LocalPath {
     fn try_new(path: PathBuf) -> Result<Self> {
         if !path.exists() {
-            Err(Error::InvalidRepo(format!(
-                "not found dir '{}'",
-                path.display()
-            )))
+            Err(Error::PathNotFound(path))
         } else {
             Ok(Self(path))
         }
@@ -201,8 +205,8 @@ mod tests {
         let uri = "httpx://abc/hello.git";
         let err = Git::try_new(uri.into(), HashMap::new()).err().unwrap();
         assert_eq!(
-            err,
-            Error::InvalidRepo("'httpx://abc/hello.git' is invalid git repo".into())
+            err.to_string(),
+            "invalid \"git\" repo: \"httpx://abc/hello.git\""
         );
     }
 

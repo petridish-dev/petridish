@@ -18,6 +18,8 @@ walkdir = "2.3"
 clap = { version = "3", features = ["derive"] }
 inquire = "0.3.0-alpha.2"
 enum_dispatch = "0.3"
+thiserror = "1"
+anyhow = "1"
 
 [dev-dependencies]
 serde_json = "1.0"
