@@ -16,8 +16,8 @@ regex = "1"
 tempdir = "0.3"
 walkdir = "2.3"
 clap = { version = "3", features = ["derive"] }
-indexmap = { version = "1.9", features = ["serde"] }
-dialoguer = "0.10"
+inquire = "0.3.0-alpha.2"
+enum_dispatch = "0.3"
 
 [dev-dependencies]
 serde_json = "1.0"

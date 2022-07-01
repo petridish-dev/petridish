@@ -1,7 +1,6 @@
 pub mod config;
 pub mod error;
 mod literal_value;
-pub mod prompt;
 pub mod render;
 mod repository;
 
