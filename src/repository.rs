@@ -204,10 +204,7 @@ mod tests {
     fn test_invalid_git_repo() {
         let uri = "httpx://abc/hello.git";
         let err = Git::try_new(uri.into(), HashMap::new()).err().unwrap();
-        assert_eq!(
-            err.to_string(),
-            "invalid \"git\" repo: \"httpx://abc/hello.git\""
-        );
+        assert_eq!(err.to_string(), "invalid git repo: httpx://abc/hello.git");
     }
 
     #[test]

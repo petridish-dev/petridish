@@ -10,10 +10,10 @@ pub enum Error {
     #[error("{0}")]
     RenderError(#[from] tera::Error),
 
-    #[error("invalid {kind:?} repo: {uri:?}")]
+    #[error("invalid {kind} repo: {uri}")]
     InvalidRepo { kind: String, uri: String },
 
-    #[error("invalid alias `{provider:?}` repo: {alias:?}")]
+    #[error("invalid alias `{provider}` repo: {alias}")]
     InvalidGitAliasRepo { alias: String, provider: String },
 
     #[error("{0} `password` is not provided")]
