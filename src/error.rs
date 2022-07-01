@@ -28,7 +28,7 @@ pub enum Error {
     #[error("{0}")]
     ArgsError(String),
 
-    #[error("{0}")]
+    #[error("ParseError")]
     ParseError(#[from] toml::de::Error),
 }
 

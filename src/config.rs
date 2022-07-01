@@ -208,7 +208,11 @@ where
     fn prompt(self, context: &mut Context) -> Result<()> {
         let prompt = self.prompt.unwrap_or_else(|| self.name.clone());
         let default: usize = match self.default {
-            Some(default) => self.choices.iter().position(|i| i == &default).unwrap(),
+            Some(default) => self
+                .choices
+                .iter()
+                .position(|i| i == &default)
+                .unwrap_or_default(),
             None => 0,
         };
         let value = inquire::Select::new(&prompt, self.choices)
