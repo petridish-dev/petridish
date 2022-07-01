@@ -10,7 +10,7 @@ pub fn try_new_repo(uri: String, context: HashMap<String, String>) -> Result<Box
         return Ok(Box::new(repo));
     }
 
-    let local_repo = LocalPath::try_new(uri.into())?;
+    let local_repo = LocalPath::new(uri.into());
     Ok(Box::new(local_repo))
 }
 
@@ -127,8 +127,8 @@ struct Auth {
 struct LocalPath(PathBuf);
 
 impl LocalPath {
-    fn try_new(path: PathBuf) -> Result<Self> {
-        Ok(Self(path))
+    fn new(path: PathBuf) -> Self {
+        Self(path)
     }
 }
 
