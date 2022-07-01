@@ -1,7 +1,6 @@
 use std::fs::read_to_string;
 use std::{collections::HashMap, path::PathBuf};
 
-use anyhow::Result;
 use clap::{builder::ArgAction, Parser};
 use inquire::error::InquireError;
 use petridish::{
@@ -58,7 +57,7 @@ struct Args {
     branch: Option<String>,
 }
 
-fn entry() -> Result<()> {
+fn entry() -> petridish::error::Result<()> {
     let args = Args::parse();
     let mut context = HashMap::new();
     if let Some(auth) = args.auth.as_ref() {
@@ -83,8 +82,7 @@ fn entry() -> Result<()> {
         return Err(Error::PathNotFound(petridish_config))?;
     }
 
-    let petridish_config =
-        toml::from_str::<Config>(&read_to_string(petridish_config).unwrap()).unwrap();
+    let petridish_config = toml::from_str::<Config>(&read_to_string(petridish_config).unwrap())?;
     let entry_dir_name = format!(
         "{{{{ {} }}}}",
         petridish_config.petridish_config.project_var_name
@@ -120,16 +118,16 @@ fn entry() -> Result<()> {
     Ok(())
 }
 
-fn main() -> Result<()> {
+fn main() -> anyhow::Result<()> {
     if let Err(e) = entry() {
-        if let Some(e) = e.downcast_ref::<InquireError>() {
-            if matches!(
-                e,
-                InquireError::OperationCanceled | InquireError::OperationInterrupted
-            ) {
-                return Ok(());
-            }
+        if matches!(
+            e,
+            Error::PromptError(InquireError::OperationCanceled)
+                | Error::PromptError(InquireError::OperationInterrupted)
+        ) {
+            return Ok(());
         }
+
         return Err(e)?;
     }
 

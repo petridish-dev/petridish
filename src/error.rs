@@ -27,6 +27,9 @@ pub enum Error {
 
     #[error("{0}")]
     ArgsError(String),
+
+    #[error("{0}")]
+    ParseError(#[from] toml::de::Error),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
