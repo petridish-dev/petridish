@@ -4,8 +4,12 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("no such file or directory: '{0}'")]
-    PathNotFound(PathBuf),
+    #[error("not found '{path}'")]
+    PathNotFound {
+        #[source]
+        source: std::io::Error,
+        path: PathBuf,
+    },
 
     #[error("{0}")]
     RenderError(#[from] tera::Error),

@@ -128,11 +128,7 @@ struct LocalPath(PathBuf);
 
 impl LocalPath {
     fn try_new(path: PathBuf) -> Result<Self> {
-        if !path.exists() {
-            Err(Error::PathNotFound(path))
-        } else {
-            Ok(Self(path))
-        }
+        Ok(Self(path))
     }
 }
 

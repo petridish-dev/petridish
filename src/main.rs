@@ -78,18 +78,26 @@ fn entry() -> petridish::error::Result<()> {
 
     let repo = try_new_repo(args.template_uri, context)?;
     let petridish_config = repo.repo_dir().join("petridish.toml");
-    if !petridish_config.exists() {
-        return Err(Error::PathNotFound(petridish_config))?;
-    }
-
-    let petridish_config = toml::from_str::<Config>(&read_to_string(petridish_config).unwrap())?;
+    let petridish_config =
+        toml::from_str::<Config>(&read_to_string(&petridish_config).map_err(|e| {
+            Error::PathNotFound {
+                source: e,
+                path: petridish_config,
+            }
+        })?)?;
     let entry_dir_name = format!(
         "{{{{ {} }}}}",
         petridish_config.petridish_config.project_var_name
     );
     let entry_dir = repo.repo_dir().join(&entry_dir_name);
     if !entry_dir.exists() {
-        return Err(Error::PathNotFound(entry_dir))?;
+        return Err(Error::PathNotFound {
+            source: std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "No such file or directory (os error 2)",
+            ),
+            path: entry_dir,
+        });
     }
 
     // start prompting

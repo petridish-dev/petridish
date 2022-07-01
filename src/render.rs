@@ -8,7 +8,7 @@ use tera::Context;
 use tera::Tera;
 use walkdir::WalkDir;
 
-use crate::error::{Error, Result};
+use crate::error::Result;
 
 pub struct Render {
     template_path: PathBuf,
@@ -25,10 +25,6 @@ impl Render {
         context: Context,
     ) -> Result<Self> {
         let template_dir: PathBuf = template_path.into();
-        let entry_dir = template_dir.join(entry_dir_name);
-        if !entry_dir.exists() {
-            Err(Error::PathNotFound(entry_dir))?;
-        }
 
         Ok(Self {
             template_path: template_dir,
