@@ -15,7 +15,7 @@ pub fn try_new_repo(uri: String, context: HashMap<String, String>) -> Result<Box
 }
 
 pub trait Repository {
-    fn download(&self, cache_dir: PathBuf) -> Result<()>;
+    fn download(&self) -> Result<()>;
     fn repo_dir(&self) -> PathBuf;
 }
 
@@ -108,7 +108,7 @@ impl Git {
 }
 
 impl Repository for Git {
-    fn download(&self, _cache_dir: PathBuf) -> Result<()> {
+    fn download(&self) -> Result<()> {
         todo!()
     }
 
@@ -133,7 +133,7 @@ impl LocalPath {
 }
 
 impl Repository for LocalPath {
-    fn download(&self, _cache_dir: PathBuf) -> Result<()> {
+    fn download(&self) -> Result<()> {
         Ok(())
     }
 
