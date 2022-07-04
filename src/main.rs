@@ -84,7 +84,24 @@ fn entry() -> petridish::error::Result<()> {
         context.insert("branch".to_string(), branch.to_string());
     }
 
-    let repo = try_new_repo(args.template_uri, context)?;
+    let repo = try_new_repo(args.template_uri.clone(), context.clone())?;
+    let repo = match repo.download() {
+        Err(Error::GitError(e)) => {
+            if e.code() == git2::ErrorCode::Auth {
+                let username = inquire::Text::new("git username").prompt()?;
+                let password = inquire::Password::new("git password").prompt()?;
+                context.insert("username".to_string(), username);
+                context.insert("password".to_string(), password);
+                let repo = try_new_repo(args.template_uri, context)?;
+                repo.download()?;
+                repo
+            } else {
+                return Err(Error::GitError(e));
+            }
+        }
+        Err(e) => return Err(e),
+        _ => repo,
+    };
     let petridish_config = repo.repo_dir().join("petridish.toml");
     let petridish_config =
         toml::from_str::<Config>(&read_to_string(&petridish_config).map_err(|e| {

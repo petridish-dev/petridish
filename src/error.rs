@@ -37,6 +37,12 @@ pub enum Error {
 
     #[error("exists '{0}' in output dir, cannot overwrite it, or you can add flag `-f` or `-s`")]
     CannotOverwriteContent(PathBuf),
+
+    #[error("git error")]
+    GitError(#[from] git2::Error),
+
+    #[error("unknown git ref '{0}'")]
+    InvalidGitRef(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

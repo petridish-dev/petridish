@@ -1,8 +1,14 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use regex::Regex;
 
-use crate::error::{Error, Result};
+use crate::{
+    cache::Cache,
+    error::{Error, Result},
+};
 
 pub fn try_new_repo(uri: String, context: HashMap<String, String>) -> Result<Box<dyn Repository>> {
     if Git::check_match(&uri) {
@@ -21,6 +27,7 @@ pub trait Repository {
 
 #[derive(Debug, PartialEq)]
 struct Git {
+    name: String,
     uri: String,
     branch: Option<String>,
     auth: Option<Auth>,
@@ -63,8 +70,20 @@ impl Git {
             None
         };
 
+        let name = uri
+            .trim_end_matches(".git")
+            .split('/')
+            .last()
+            .unwrap()
+            .to_string();
+
         if uri.starts_with("https://") || uri.starts_with("http://") || uri.starts_with("git@") {
-            Ok(Self { uri, branch, auth })
+            Ok(Self {
+                uri,
+                branch,
+                auth,
+                name,
+            })
         } else {
             Err(Error::InvalidRepo {
                 kind: "git".into(),
@@ -109,12 +128,85 @@ impl Git {
 
 impl Repository for Git {
     fn download(&self) -> Result<()> {
-        todo!()
+        let url = self.uri.clone();
+        let url = if url.starts_with("https://") || url.starts_with("http://") {
+            if let Some(Auth { username, password }) = &self.auth {
+                let prefix = url.split("://").collect::<Vec<&str>>()[0];
+                let tail = url.trim_start_matches(&format!("{}://", prefix));
+                format!("{}://{}:{}@{}", prefix, username, password, tail)
+            } else {
+                url
+            }
+        } else {
+            url
+        };
+        let tmp_dir = tempdir::TempDir::new("git_temp").unwrap();
+        let tmp_repo = tmp_dir.path().join(&self.name);
+        let repo = if url.starts_with("git") {
+            clone_ssh_repo(&url, &tmp_repo)
+        } else {
+            clone_http_repo(&url, &tmp_repo)
+        }?;
+        if let Some(branch) = &self.branch {
+            checkout_ref(branch, repo).map_err(|_| Error::InvalidGitRef(branch.clone()))?;
+        }
+
+        Cache::add(&tmp_repo);
+        Ok(())
     }
 
     fn repo_dir(&self) -> PathBuf {
-        todo!()
+        Cache::get(&self.name).unwrap()
     }
+}
+
+fn clone_http_repo<P>(url: &str, into: P) -> Result<git2::Repository>
+where
+    P: AsRef<Path>,
+{
+    Ok(git2::Repository::clone(url, into)?)
+}
+
+fn clone_ssh_repo<P>(url: &str, into: P) -> Result<git2::Repository>
+where
+    P: AsRef<Path>,
+{
+    let mut callbacks = git2::RemoteCallbacks::new();
+    callbacks.credentials(|_url, username_from_url, _allowed_types| {
+        git2::Cred::ssh_key(
+            username_from_url.unwrap(),
+            None,
+            Path::new(&format!("{}/.ssh/id_rsa", std::env::var("HOME").unwrap())),
+            None,
+        )
+    });
+
+    // Prepare fetch options.
+    let mut fo = git2::FetchOptions::new();
+    fo.remote_callbacks(callbacks);
+
+    // Prepare builder.
+    let mut builder = git2::build::RepoBuilder::new();
+    builder.fetch_options(fo);
+
+    Ok(builder.clone(url, into.as_ref())?)
+}
+
+fn checkout_ref(branch: &str, repo: git2::Repository) -> std::result::Result<(), git2::Error> {
+    let (obj, reference) = match repo.revparse_ext(branch) {
+        Err(e) => {
+            let branch = format!("remotes/origin/{}", branch);
+            repo.revparse_ext(&branch).map_err(|_| e)? // return origin error
+        }
+        Ok((obj, reference)) => (obj, reference),
+    };
+    repo.checkout_tree(&obj, None)?;
+
+    match reference {
+        Some(gref) => repo.set_head(gref.name().unwrap()),
+        None => repo.set_head_detached(obj.id()),
+    }?;
+    Ok(())
 }
 
 #[derive(Debug, PartialEq)]
@@ -153,6 +245,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "hello".to_string(),
                 uri: "http://abc/hello.git".into(),
                 branch: None,
                 auth: None
@@ -171,7 +264,8 @@ mod tests {
             Git {
                 uri: "http://abc/hello.git".into(),
                 branch: Some("dev".into()),
-                auth: None
+                auth: None,
+                name: "hello".to_string(),
             }
         );
     }
@@ -191,7 +285,8 @@ mod tests {
                 auth: Some(Auth {
                     username: "user1".into(),
                     password: "abc".into()
-                })
+                }),
+                name: "hello".to_string(),
             }
         );
     }
@@ -210,6 +305,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "https://github.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -224,6 +320,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "https://github.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -238,6 +335,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "https://github.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -252,6 +350,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "http://github.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -266,6 +365,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "git@github.com:rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -280,6 +380,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "https://gitlab.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -294,6 +395,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "https://gitlab.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -308,6 +410,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "http://gitlab.com/rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -322,6 +425,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "git@gitlab.com:rust-lang/rust.git".into(),
                 branch: None,
                 auth: None
@@ -338,6 +442,7 @@ mod tests {
         assert_eq!(
             repo,
             Git {
+                name: "rust".to_string(),
                 uri: "git@gitlab.cn.com:rust-lang/rust.git".into(),
                 branch: None,
                 auth: None

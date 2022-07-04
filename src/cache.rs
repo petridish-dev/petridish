@@ -29,6 +29,11 @@ impl Cache {
     }
 
     pub fn add(source: &Path) {
+        let cache_dir = get_cache_dir();
+        if !cache_dir.exists() {
+            fs::create_dir_all(cache_dir).unwrap();
+        }
+
         let dest = get_cache_dir().join(source.file_name().unwrap().to_str().unwrap());
         if dest.exists() {
             fs::remove_dir_all(&dest).unwrap();
