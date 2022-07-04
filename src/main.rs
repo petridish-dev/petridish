@@ -120,6 +120,7 @@ fn entry() -> petridish::error::Result<()> {
         &entry_dir_name,
         output_path,
         prompt_context,
+        args.force,
     );
     render.render()?;
 

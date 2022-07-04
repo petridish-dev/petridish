@@ -34,6 +34,9 @@ pub enum Error {
 
     #[error("ParseError")]
     ParseError(#[from] toml::de::Error),
+
+    #[error("exists '{0}' in output dir, cannot overwrite it, or you can add flag `-f`")]
+    CannotOverwriteContent(PathBuf),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

@@ -4,13 +4,14 @@ use tera::Context;
 use tera::Tera;
 use walkdir::WalkDir;
 
-use crate::error::Result;
+use crate::error::{Error, Result};
 
 pub struct Render {
     template_path: PathBuf,
     entry_dir_name: String,
     output_path: PathBuf,
     context: Context,
+    overwrite_if_exists: bool,
 }
 
 impl Render {
@@ -19,12 +20,14 @@ impl Render {
         entry_dir_name: &str,
         output_path: impl Into<PathBuf>,
         context: Context,
+        overwrite_if_exists: bool,
     ) -> Self {
         Self {
             template_path: template_path.into(),
             entry_dir_name: entry_dir_name.into(),
             output_path: output_path.into(),
             context,
+            overwrite_if_exists,
         }
     }
 }
@@ -51,17 +54,26 @@ impl Render {
                 .trim_start_matches('/')
                 .to_string();
             let relative_path = tera.render_str(&relative_path, &self.context)?;
-            file_contents.insert(relative_path, rendered_content);
+            let dest_path = self.output_path.join(relative_path);
+            file_contents.insert(dest_path, rendered_content);
+        }
+
+        if !self.overwrite_if_exists {
+            // check whether dest path exists
+            for dest_path in file_contents.keys() {
+                if dest_path.exists() {
+                    return Err(Error::CannotOverwriteContent(dest_path.clone()));
+                }
+            }
         }
 
         // dump files
-        for (relative_path, rendered_content) in file_contents {
-            let output_path = self.output_path.join(relative_path);
-            let parent = output_path.parent().unwrap();
+        for (dest_path, rendered_content) in file_contents {
+            let parent = dest_path.parent().unwrap();
             if !parent.exists() {
                 fs::create_dir_all(parent).unwrap();
             }
-            fs::write(output_path, rendered_content).unwrap();
+            fs::write(dest_path, rendered_content).unwrap();
         }
 
         Ok(())
