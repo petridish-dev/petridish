@@ -43,6 +43,9 @@ pub enum Error {
 
     #[error("unknown git ref '{0}'")]
     InvalidGitRef(String),
+
+    #[error("not found repo '{0}' in cache")]
+    RepoNotFoundInCache(String),
 }
 
 pub type Result<T> = std::result::Result<T, Error>;

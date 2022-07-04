@@ -23,6 +23,8 @@ pub fn try_new_repo(uri: String, context: HashMap<String, String>) -> Result<Box
 pub trait Repository {
     fn download(&self) -> Result<()>;
     fn repo_dir(&self) -> PathBuf;
+    fn name(&self) -> &str;
+    fn need_cache(&self) -> bool;
 }
 
 #[derive(Debug, PartialEq)]
@@ -158,6 +160,14 @@ impl Repository for Git {
     fn repo_dir(&self) -> PathBuf {
         Cache::get(&self.name).unwrap()
     }
+
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn need_cache(&self) -> bool {
+        true
+    }
 }
 
 fn clone_http_repo<P>(url: &str, into: P) -> Result<git2::Repository>
@@ -231,6 +241,14 @@ impl Repository for LocalPath {
 
     fn repo_dir(&self) -> PathBuf {
         self.0.clone()
+    }
+
+    fn name(&self) -> &str {
+        self.0.file_name().unwrap().to_str().unwrap()
+    }
+
+    fn need_cache(&self) -> bool {
+        false
     }
 }
 

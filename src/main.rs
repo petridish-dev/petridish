@@ -1,9 +1,13 @@
-use std::fs::read_to_string;
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs::read_to_string,
+    path::{Path, PathBuf},
+};
 
 use clap::{builder::ArgAction, Parser};
 use inquire::error::InquireError;
 use petridish::{
+    cache::Cache,
     config::{Config, Prompt},
     error::Error,
     render::Render,
@@ -84,24 +88,47 @@ fn entry() -> petridish::error::Result<()> {
         context.insert("branch".to_string(), branch.to_string());
     }
 
-    let repo = try_new_repo(args.template_uri.clone(), context.clone())?;
-    let repo = match repo.download() {
-        Err(Error::GitError(e)) => {
-            if e.code() == git2::ErrorCode::Auth {
-                let username = inquire::Text::new("git username").prompt()?;
-                let password = inquire::Password::new("git password").prompt()?;
-                context.insert("username".to_string(), username);
-                context.insert("password".to_string(), password);
-                let repo = try_new_repo(args.template_uri, context)?;
-                repo.download()?;
-                repo
-            } else {
-                return Err(Error::GitError(e));
-            }
+    let repo = if regex::Regex::new(r"^[\w-]+$")
+        .unwrap()
+        .is_match(&args.template_uri)
+        && !Path::new(&args.template_uri).exists()
+    {
+        let path = Cache::get(&args.template_uri)
+            .ok_or_else(|| Error::RepoNotFoundInCache(args.template_uri.to_string()))?;
+        try_new_repo(path.display().to_string(), context.clone())?
+    } else {
+        let repo = try_new_repo(args.template_uri.clone(), context.clone())?;
+        if repo.need_cache()
+            && Cache::get(repo.name()).is_some()
+            && !inquire::Confirm::new(&format!(
+                "You've downloaded '{}' before. Is it okay to re-download it?",
+                repo.name()
+            ))
+            .with_default(true)
+            .prompt()?
+        {
+            return Ok(());
         }
-        Err(e) => return Err(e),
-        _ => repo,
+
+        match repo.download() {
+            Err(Error::GitError(e)) => {
+                if e.code() == git2::ErrorCode::Auth {
+                    let username = inquire::Text::new("git username").prompt()?;
+                    let password = inquire::Password::new("git password").prompt()?;
+                    context.insert("username".to_string(), username);
+                    context.insert("password".to_string(), password);
+                    let repo = try_new_repo(args.template_uri, context)?;
+                    repo.download()?;
+                    repo
+                } else {
+                    return Err(Error::GitError(e));
+                }
+            }
+            Err(e) => return Err(e),
+            _ => repo,
+        }
     };
+
     let petridish_config = repo.repo_dir().join("petridish.toml");
     let petridish_config =
         toml::from_str::<Config>(&read_to_string(&petridish_config).map_err(|e| {
