@@ -21,6 +21,8 @@ pub struct PetridishConfig {
     pub project_prompt: String,
     #[serde(default = "default_project_var_name")]
     pub project_var_name: String,
+    pub short_description: Option<String>,
+    pub long_description: Option<String>,
 }
 
 fn default_prompt_message_for_project_name() -> String {
@@ -36,6 +38,8 @@ impl Default for PetridishConfig {
         Self {
             project_prompt: default_prompt_message_for_project_name(),
             project_var_name: default_project_var_name(),
+            short_description: None,
+            long_description: None,
         }
     }
 }
@@ -612,7 +616,9 @@ mod tests {
             Config {
                 petridish_config: PetridishConfig {
                     project_prompt: "what's your project name?".into(),
-                    project_var_name: "project".into()
+                    project_var_name: "project".into(),
+                    short_description: None,
+                    long_description: None,
                 },
                 prompts: vec![],
             }
@@ -628,7 +634,10 @@ mod tests {
             Config {
                 petridish_config: PetridishConfig {
                     project_prompt: "project name?".into(),
-                    project_var_name: "project_name".into()
+                    project_var_name: "project_name".into(),
+
+                    short_description: None,
+                    long_description: None,
                 },
                 prompts: vec![],
             }
@@ -678,7 +687,9 @@ mod tests {
             Config {
                 petridish_config: PetridishConfig {
                     project_prompt: "what's your project name?".into(),
-                    project_var_name: "project".into()
+                    project_var_name: "project".into(),
+                    short_description: None,
+                    long_description: None,
                 },
                 prompts: vec![
                     PromptType::String(StringPrompt::Input(StringInput {

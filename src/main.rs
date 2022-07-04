@@ -5,6 +5,7 @@ use std::{
 };
 
 use clap::{builder::ArgAction, Parser, Subcommand};
+use crossterm::style::Color;
 use inquire::error::InquireError;
 use petridish::{
     cache::Cache,
@@ -14,6 +15,7 @@ use petridish::{
     try_new_repo,
 };
 use tera::Context;
+use termimad::*;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -175,6 +177,21 @@ fn entry() -> petridish::error::Result<()> {
                 });
             }
 
+            // show description
+            let description = petridish_config
+                .petridish_config
+                .long_description
+                .or(petridish_config.petridish_config.short_description);
+            if let Some(description) = description {
+                let mut skin = MadSkin::default();
+                skin.set_headers_fg(rgb(255, 187, 0));
+                skin.bold.set_fg(Color::Yellow);
+                skin.italic.set_fgbg(Color::Magenta, rgb(30, 30, 40));
+                //skin.paragraph.align = Alignment::Le;
+                //skin.table.align = Alignment::Center;
+                println!("{}", skin.term_text(&description));
+            }
+
             // start prompting
             let mut prompt_context = Context::new();
 
@@ -185,6 +202,7 @@ fn entry() -> petridish::error::Result<()> {
                 petridish_config.petridish_config.project_var_name,
                 &project_name,
             );
+
             for prompt_type in petridish_config.prompts {
                 prompt_type.prompt(&mut prompt_context)?;
             }
