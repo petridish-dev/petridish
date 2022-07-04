@@ -3,6 +3,7 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
+use walkdir::WalkDir;
 
 pub struct Cache;
 
@@ -39,5 +40,16 @@ impl Cache {
             fs::remove_dir_all(&dest).unwrap();
         }
         fs::rename(source, dest).unwrap();
+    }
+
+    pub fn list() -> Vec<PathBuf> {
+        WalkDir::new(get_cache_dir())
+            .max_depth(1)
+            .into_iter()
+            .skip(1)
+            .filter_map(|e| e.ok())
+            .filter(|p| p.file_type().is_dir())
+            .map(|p| p.path().to_owned())
+            .collect::<Vec<PathBuf>>()
     }
 }
