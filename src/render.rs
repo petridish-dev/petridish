@@ -12,6 +12,7 @@ pub struct Render {
     output_path: PathBuf,
     context: Context,
     overwrite_if_exists: bool,
+    skip_if_exists: bool,
 }
 
 impl Render {
@@ -21,6 +22,7 @@ impl Render {
         output_path: impl Into<PathBuf>,
         context: Context,
         overwrite_if_exists: bool,
+        skip_if_exists: bool,
     ) -> Self {
         Self {
             template_path: template_path.into(),
@@ -28,6 +30,7 @@ impl Render {
             output_path: output_path.into(),
             context,
             overwrite_if_exists,
+            skip_if_exists,
         }
     }
 }
@@ -58,7 +61,7 @@ impl Render {
             file_contents.insert(dest_path, rendered_content);
         }
 
-        if !self.overwrite_if_exists {
+        if !self.overwrite_if_exists && !self.skip_if_exists {
             // check whether dest path exists
             for dest_path in file_contents.keys() {
                 if dest_path.exists() {
@@ -73,7 +76,9 @@ impl Render {
             if !parent.exists() {
                 fs::create_dir_all(parent).unwrap();
             }
-            fs::write(dest_path, rendered_content).unwrap();
+            if !dest_path.exists() || self.overwrite_if_exists {
+                fs::write(dest_path, rendered_content).unwrap();
+            }
         }
 
         Ok(())

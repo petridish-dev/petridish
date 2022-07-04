@@ -19,6 +19,7 @@ fn test_render() {
         output.path(),
         context,
         false,
+        false,
     );
     render.render().unwrap();
 

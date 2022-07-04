@@ -27,6 +27,14 @@ struct Args {
 
     #[clap(
         short,
+        long = "skip-if-exists",
+        action,
+        help = "Skip the file if it already exists"
+    )]
+    skip: bool,
+
+    #[clap(
+        short,
         long,
         value_parser,
         help = "Where to output the generated project dir into"
@@ -121,6 +129,7 @@ fn entry() -> petridish::error::Result<()> {
         output_path,
         prompt_context,
         args.force,
+        args.skip,
     );
     render.render()?;
 

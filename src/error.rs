@@ -35,7 +35,7 @@ pub enum Error {
     #[error("ParseError")]
     ParseError(#[from] toml::de::Error),
 
-    #[error("exists '{0}' in output dir, cannot overwrite it, or you can add flag `-f`")]
+    #[error("exists '{0}' in output dir, cannot overwrite it, or you can add flag `-f` or `-s`")]
     CannotOverwriteContent(PathBuf),
 }
 
