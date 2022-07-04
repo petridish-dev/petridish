@@ -19,7 +19,7 @@ struct Args {
 
     #[clap(
         short,
-        long = "overwrite_if_exists",
+        long = "overwrite-if-exists",
         action,
         help = "Overwrite the contents of the output directory if it already exists"
     )]
