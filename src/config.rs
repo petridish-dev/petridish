@@ -231,6 +231,8 @@ pub struct MultiSelect<T> {
     prompt: Option<String>,
     choices: Vec<T>,
     default: Option<Vec<T>>,
+    #[serde(default)]
+    emptyable: bool,
 }
 
 impl<T> Prompt for MultiSelect<T>
@@ -254,6 +256,13 @@ where
 
         let selections = inquire::MultiSelect::new(&prompt, self.choices)
             .with_default(&defaults)
+            .with_validator(&|a| {
+                if a.is_empty() {
+                    return Ok(Validation::Invalid("No item is selected".into()));
+                }
+
+                Ok(Validation::Valid)
+            })
             .prompt()?;
 
         context.insert(self.name, &selections);
@@ -520,6 +529,7 @@ mod tests {
             prompt: Some("age".into()),
             choices: vec![10_f64, 20_f64, 30_f64],
             default: None,
+            emptyable: false,
         }));
         assert_eq!(parsed, expected);
     }
@@ -541,6 +551,7 @@ mod tests {
             prompt: Some("age".into()),
             choices: vec![10_f64, 20_f64, 30_f64],
             default: Some(vec![10_f64]),
+            emptyable: false,
         }));
         assert_eq!(parsed, expected);
     }
@@ -561,6 +572,7 @@ mod tests {
             prompt: Some("name".into()),
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: None,
+            emptyable: false,
         }));
         assert_eq!(parsed, expected);
     }
@@ -582,6 +594,7 @@ mod tests {
             prompt: Some("name".into()),
             choices: vec!["a".into(), "b".into(), "c".into()],
             default: Some(vec!["a".into()]),
+            emptyable: false,
         }));
         assert_eq!(parsed, expected);
     }
@@ -692,6 +705,7 @@ mod tests {
                         choices: vec!["swimming".into(), "running".into(), "reading".into()],
                         default: None,
                         multi: LiteralTrue,
+                        emptyable: false,
                     })),
                     PromptType::String(StringPrompt::Select(Select {
                         name: "nationality".into(),
