@@ -18,20 +18,18 @@ pub struct Render {
 }
 
 impl Render {
-    pub fn try_new(
+    pub fn new(
         template_path: impl Into<PathBuf>,
         entry_dir_name: &str,
         output_path: impl Into<PathBuf>,
         context: Context,
-    ) -> Result<Self> {
-        let template_dir: PathBuf = template_path.into();
-
-        Ok(Self {
-            template_path: template_dir,
+    ) -> Self {
+        Self {
+            template_path: template_path.into(),
             entry_dir_name: entry_dir_name.into(),
             output_path: output_path.into(),
             context,
-        })
+        }
     }
 }
 

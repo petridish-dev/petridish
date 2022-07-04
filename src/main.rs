@@ -115,12 +115,12 @@ fn entry() -> petridish::error::Result<()> {
     }
 
     let output_path = args.output_dir.unwrap_or_default();
-    let render = Render::try_new(
+    let render = Render::new(
         repo.repo_dir(),
         &entry_dir_name,
         output_path,
         prompt_context,
-    )?;
+    );
     render.render()?;
 
     Ok(())

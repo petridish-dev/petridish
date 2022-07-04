@@ -13,8 +13,7 @@ fn test_render() {
     context.insert("inner_value", "Secret");
 
     let output = tempdir::TempDir::new("test").unwrap();
-    let render =
-        Render::try_new("tests/templates", "{{ project }}", output.path(), context).unwrap();
+    let render = Render::new("tests/templates", "{{ project }}", output.path(), context);
     render.render().unwrap();
 
     assert!(output.path().join("awesome").exists());
