@@ -5,7 +5,7 @@ use std::{
 };
 
 use clap::{builder::ArgAction, Parser, Subcommand};
-use crossterm::style::Color;
+use crossterm::style::{Color, Stylize};
 use inquire::error::InquireError;
 use petridish::{
     cache::Cache,
@@ -13,6 +13,10 @@ use petridish::{
     error::Error,
     render::Render,
     try_new_repo,
+};
+use tabled::{
+    object::{Columns, FirstRow, Segment},
+    Alignment, Format, Modify, Style, Table, Tabled,
 };
 use tera::Context;
 use termimad::*;
@@ -217,13 +221,44 @@ fn entry() -> petridish::error::Result<()> {
             render.render()?;
         }
         Commands::List => {
+            let mut templates = vec![];
+
             for path in Cache::list() {
-                println!("{}", path.file_name().unwrap().to_str().unwrap());
+                let name = path.file_name().unwrap().to_str().unwrap();
+                let config = path.join("petridish.toml");
+                if !config.exists() {
+                    continue;
+                }
+                let config = toml::from_str::<Config>(&read_to_string(&config).unwrap()).unwrap();
+                let description = config
+                    .petridish_config
+                    .short_description
+                    .unwrap_or_default();
+                templates.push(CachedTemplate {
+                    name: name.to_string(),
+                    description,
+                });
             }
+            println!(
+                "{}",
+                Table::new(templates)
+                    .with(Style::blank())
+                    .with(Modify::new(Segment::all()).with(Alignment::left()))
+                    .with(Modify::new(FirstRow).with(Format::new(|s| s.yellow().to_string())))
+                    .with(
+                        Modify::new(Columns::single(1)).with(Format::new(|s| s.blue().to_string()))
+                    )
+            );
         }
     }
 
     Ok(())
+}
+
+#[derive(Tabled)]
+struct CachedTemplate {
+    name: String,
+    description: String,
 }
 
 fn main() -> anyhow::Result<()> {
