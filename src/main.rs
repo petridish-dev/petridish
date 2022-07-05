@@ -187,8 +187,6 @@ fn entry() -> petridish::error::Result<()> {
                 skin.set_headers_fg(rgb(255, 187, 0));
                 skin.bold.set_fg(Color::Yellow);
                 skin.italic.set_fgbg(Color::Magenta, rgb(30, 30, 40));
-                //skin.paragraph.align = Alignment::Le;
-                //skin.table.align = Alignment::Center;
                 println!("{}", skin.term_text(&description));
             }
 
