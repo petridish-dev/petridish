@@ -79,30 +79,30 @@ default = true
 ### Prompt config
 | Prompt kind  | Field         | Description                                            | optional |
 | ------------ | ------------- | ------------------------------------------------------ | :------: |
-| string input | **name**      | template_var_name                                      |          |
+| string input | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
 |              | **default**   | default value                                          |    ✅     |
 |              | **regex**     | regex pattern, the prompt value must match the pattern |    ✅     |
 |              | **type**      | must be `string`                                       |          |
-| number input | **name**      | template_var_name                                      |          |
+| number input | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
 |              | **default**   | default value                                          |    ✅     |
 |              | **min**       | the min value                                          |    ✅     |
 |              | **max**       | the max value                                          |    ✅     |
 |              | **type**      | must be `number`                                       |          |
-| select       | **name**      | template_var_name                                      |          |
+| select       | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
 |              | **choices**   | choice items                                           |          |
 |              | **default**   | default value                                          |    ✅     |
 |              | **type**      | `string` or `number`                                   |          |
-| multi select | **name**      | template_var_name                                      |          |
+| multi select | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
 |              | **choices**   | choice items                                           |          |
 |              | **default**   | default values                                         |    ✅     |
 |              | **multi**     | must be `true`                                         |          |
 |              | **emptyable** | whether value can be empty, default `false`            |    ✅     |
 |              | **type**      | `string` or `number`                                   |          |
-| confirm      | **name**      | template_var_name                                      |          |
+| confirm      | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
 |              | **default**   | default value (default `false`)                        |    ✅     |
 |              | **type**      | must be `bool`                                         |          |
@@ -117,6 +117,7 @@ The format should be like `<abbreviation>[+<protocol>]:<namespace>/<project>`
 
 ```bash
 $ petridish new gh+https:petridish-dev/example
+$ petridish new example # later you can just use its name
 ```
 
 If the remote http(s) project is private, `petridish` will prompt to ask `username` and `password` for authorization.
