@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clap::{builder::ArgAction, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use crossterm::style::{Color, Stylize};
 use inquire::error::InquireError;
 use petridish::{
@@ -60,6 +60,7 @@ enum Commands {
         )]
         output_dir: Option<PathBuf>,
 
+        /*
         #[clap(
         value_parser,
         action = ArgAction::Set,
@@ -67,8 +68,7 @@ enum Commands {
         hide_default_value = true,
         help = "Add default prompt values, format should be like <key>=<value>"
         )]
-        extra_context: Vec<String>,
-
+        extra_context: Vec<String>, */
         #[clap(
             value_parser,
             long,
@@ -101,7 +101,7 @@ fn entry() -> petridish::error::Result<()> {
             force,
             skip,
             output_dir,
-            extra_context: _,
+            // extra_context: _,
             auth,
             branch,
         } => {
