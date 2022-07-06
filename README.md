@@ -68,12 +68,12 @@ default = true
 ```
 
 ### Petridish config
-| Field             | Description                                                           | optional |
-| ----------------- | --------------------------------------------------------------------- | :------: |
-| project_prompt    | the prompt message for `project_var_name`, default is `project name?` |    ✅     |
-| project_var_name  | the project var name, default is `project_name`                       |    ✅     |
-| short_description | the short description of the template, will show in sub cmd `list`    |    ✅     |
-| long_description  | the long description of the template, will show before first prompt   |    ✅     |
+| Field             | Description                                                                                          | optional |
+| ----------------- | ---------------------------------------------------------------------------------------------------- | :------: |
+| project_prompt    | the prompt message for `project_var_name`, default is `project name?`                                |    ✅     |
+| project_var_name  | the project var name, default is `project_name`                                                      |    ✅     |
+| short_description | the short description of the template, will show in sub cmd `list`                                   |    ✅     |
+| long_description  | the long description of the template, will show before first prompt (**support Markdown highlight**) |    ✅     |
 
 
 ### Prompt config
