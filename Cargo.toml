@@ -21,7 +21,7 @@ enum_dispatch = "0.3"
 thiserror = "1"
 anyhow = "1"
 dirs = "4"
-git2 = "0.14"
+git2 = { version = "0.14", features = ["vendored-openssl"] }
 termimad = "0.20.2"
 crossterm = "0.23"
 tabled = { version = "0.7", features = ["color"] }
