@@ -81,7 +81,7 @@ default = true
 | ------------ | ------------- | ------------------------------------------------------ | :------: |
 | string input | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
-|              | **default**   | default value                                          |    ✅     |
+|              | **default**   | default ""                                             |    ✅     |
 |              | **regex**     | regex pattern, the prompt value must match the pattern |    ✅     |
 |              | **type**      | must be `string`                                       |          |
 | number input | **name**      | template var name                                      |          |
@@ -93,7 +93,7 @@ default = true
 | select       | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
 |              | **choices**   | choice items                                           |          |
-|              | **default**   | default ""                                             |    ✅     |
+|              | **default**   | default value                                          |    ✅     |
 |              | **type**      | `string` or `number`                                   |          |
 | multi select | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
