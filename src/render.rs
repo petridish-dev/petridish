@@ -73,11 +73,15 @@ impl Render {
         // dump files
         for (dest_path, rendered_content) in file_contents {
             let parent = dest_path.parent().unwrap();
+
             if !parent.exists() {
                 fs::create_dir_all(parent).unwrap();
             }
             if !dest_path.exists() || self.overwrite_if_exists {
+                println!("dump to {}", dest_path.display());
                 fs::write(dest_path, rendered_content).unwrap();
+            } else {
+                println!("skip dump to {}", dest_path.display());
             }
         }
 
