@@ -24,7 +24,7 @@ If you have heard of the [`cookiecutter`](https://github.com/cookiecutter/cookie
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Cross platform**              | Windows, Linux, MacOS                                                                                                                                                      |
 | **More flexible configuration** | `petridish` use toml file to define the template variables                                                                                                                 |
-| **More humanized prompt**       | support different kinds of prompt (`input`, `choice`, `multi choices`, `confirm`)                                                                                          |
+| **More humanized prompt**       | support different kinds of prompt (`input`, `select`, `multi select`, `confirm`)                                                                                           |
 | **Powerful template engine**    | we use [`tera`](https://github.com/Keats/tera) as our template engine, which is based on Jinja2/Django                                                                     |
 | **One binary**                  | one binary run everywhere                                                                                                                                                  |
 | **Manage cached templates**     | If you download a remote template, it will be cached, so later you can just use its name without download it again. You can also `list` or `remove` these cached templates |
