@@ -54,7 +54,8 @@ impl Render {
                 .display()
                 .to_string()
                 .trim_start_matches(&self.template_path.display().to_string())
-                .trim_start_matches('/')
+                .trim_start_matches('/') // for unix
+                .trim_start_matches('\\') // for windows
                 .to_string();
             let relative_path = tera.render_str(&relative_path, &self.context)?;
             let dest_path = self.output_path.join(relative_path);
