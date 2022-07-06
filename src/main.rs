@@ -85,6 +85,11 @@ enum Commands {
     },
     #[clap(about = "List all cached templates")]
     List,
+    #[clap(about = "Remove cached template")]
+    Remove {
+        #[clap(value_parser, help = "cached template name")]
+        name: String,
+    },
 }
 
 fn entry() -> petridish::error::Result<()> {
@@ -249,6 +254,10 @@ fn entry() -> petridish::error::Result<()> {
                         Modify::new(Columns::single(1)).with(Format::new(|s| s.blue().to_string()))
                     )
             );
+        }
+        Commands::Remove { name } => {
+            let path = Cache::get(&name).ok_or(Error::RepoNotFoundInCache(name))?;
+            std::fs::remove_dir_all(path).unwrap();
         }
     }
 
