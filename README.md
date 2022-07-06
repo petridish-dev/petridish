@@ -86,14 +86,14 @@ default = true
 |              | **type**      | must be `string`                                       |          |
 | number input | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
-|              | **default**   | default value                                          |    ✅     |
+|              | **default**   | default 0                                              |    ✅     |
 |              | **min**       | the min value                                          |    ✅     |
 |              | **max**       | the max value                                          |    ✅     |
 |              | **type**      | must be `number`                                       |          |
 | select       | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
 |              | **choices**   | choice items                                           |          |
-|              | **default**   | default value                                          |    ✅     |
+|              | **default**   | default ""                                             |    ✅     |
 |              | **type**      | `string` or `number`                                   |          |
 | multi select | **name**      | template var name                                      |          |
 |              | **prompt**    | prompt message                                         |    ✅     |
