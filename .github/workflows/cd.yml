@@ -77,7 +77,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ matrix.job.target }}
-          PROJECT_NAME: pd
+          PROJECT_NAME: petridish
           OS_NAME: ${{ matrix.job.os }}
         run: ./etc/ci/before_deploy.sh
 
@@ -85,7 +85,7 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            pd-*-${{ matrix.job.target }}.*
+            petridish-*-${{ matrix.job.target }}.*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
