@@ -46,7 +46,7 @@ short_description = "This is an awesome template"
 
 [[prompts]]
 name = "name"
-prompts = "what's your name"
+prompt = "what's your name"
 type = "string"
 
 [[prompts]]
