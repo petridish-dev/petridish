@@ -3,7 +3,7 @@ use std::fmt::Display;
 
 use inquire::validator::Validation;
 use serde::{Deserialize, Serialize};
-use tera::Context;
+use tera::{Context, Tera};
 
 use crate::{error::Result, literal_value::LiteralTrue};
 
@@ -102,9 +102,11 @@ impl Prompt for StringInput {
 
         let prompt = prompt.unwrap_or_else(|| name.clone());
         let mut prompt = inquire::Text::new(&prompt);
-        if let Some(default) = &default {
-            prompt.default = Some(default)
-        }
+        let prompt_default = default.map(|d| {
+            let mut tera = Tera::default();
+            tera.render_str(&d, context).unwrap()
+        });
+        prompt.default = prompt_default.as_deref();
 
         let value = if let Some(pattern) = &regex {
             let help_msg = format!("should match regex '{}'", pattern);
