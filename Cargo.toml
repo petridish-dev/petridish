@@ -1,6 +1,6 @@
 [package]
 name = "petridish"
-version = "0.5.1"
+version = "0.6.0"
 edition = "2021"
 authors = ["ZhengYu, Xu <zen-xu@outlook.com>"]
 categories = ["command-line-utilities", "template-engine"]
