@@ -307,7 +307,7 @@ mod tests {
         let config = r#"
         name="var"
         prompt="hello"
-        type="number"        
+        type="number"
         "#;
         let parsed = toml::from_str::<PromptType>(config).unwrap();
         let expected = PromptType::Number(NumberPrompt::Input(NumberInput {
@@ -325,7 +325,7 @@ mod tests {
         let config = r#"
         name="var"
         prompt="hello"
-        type="number"        
+        type="number"
         default=1
         "#;
         let parsed = toml::from_str::<PromptType>(config).unwrap();
@@ -344,7 +344,7 @@ mod tests {
         let config = r#"
         name="var"
         prompt="hello"
-        type="number"        
+        type="number"
         min=1
         max=20
         "#;

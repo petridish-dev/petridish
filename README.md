@@ -108,7 +108,7 @@ default = true
 |              | **type**      | must be `bool`                                         |          |
 
 
-## Remote git abbreviations 
+## Remote git abbreviations
 `petridish` knows abbreviations for Github(`gh`) and GitLab(`gl`) projects
 
 The format should be like `<abbreviation>[+<protocol>]:<namespace>/<project>`
