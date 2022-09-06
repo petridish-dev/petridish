@@ -58,7 +58,7 @@ pub enum PromptType {
     Bool(BoolPrompt),
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 #[enum_dispatch(Prompt)]
 pub enum StringPrompt {
@@ -76,14 +76,14 @@ pub enum NumberPrompt {
     Input(NumberInput),
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 #[serde(untagged)]
 #[enum_dispatch(Prompt)]
 pub enum BoolPrompt {
     Confirm(Confirm),
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub struct StringInput {
     name: String,
     prompt: Option<String>,
@@ -199,7 +199,7 @@ impl Prompt for NumberInput {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub struct Select<T> {
     name: String,
     prompt: Option<String>,
@@ -230,7 +230,7 @@ where
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub struct MultiSelect<T> {
     multi: LiteralTrue,
     name: String,
@@ -262,7 +262,7 @@ where
 
         let selections = inquire::MultiSelect::new(&prompt, self.choices)
             .with_default(&defaults)
-            .with_validator(&|a| {
+            .with_validator(&|a: _| {
                 if a.is_empty() {
                     return Ok(Validation::Invalid("No item is selected".into()));
                 }
@@ -276,7 +276,7 @@ where
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Debug, PartialEq, Eq)]
 pub struct Confirm {
     pub name: String,
     pub prompt: Option<String>,
