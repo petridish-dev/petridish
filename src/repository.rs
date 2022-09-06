@@ -142,7 +142,13 @@ impl Repository for Git {
         } else {
             url
         };
-        let tmp_dir = tempdir::TempDir::new("git_temp").unwrap();
+
+        let cache_dir = Cache::cache_dir();
+        let cache_tmp_dir = cache_dir.join(".tmp");
+        if !cache_tmp_dir.exists() {
+            std::fs::create_dir_all(&cache_tmp_dir).unwrap();
+        }
+        let tmp_dir = tempdir::TempDir::new_in(&cache_tmp_dir, "").unwrap();
         let tmp_repo = tmp_dir.path().join(&self.name);
         let repo = if url.starts_with("git") {
             clone_ssh_repo(&url, &tmp_repo)
