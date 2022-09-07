@@ -16,7 +16,7 @@ regex = "1"
 tempdir = "0.3"
 walkdir = "2.3"
 clap = { version = "3", features = ["derive"] }
-inquire = "0.3.0-alpha.2"
+inquire = "0.3.0"
 enum_dispatch = "0.3"
 thiserror = "1"
 anyhow = "1"

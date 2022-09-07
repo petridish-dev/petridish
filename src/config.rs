@@ -1,7 +1,7 @@
 use enum_dispatch::enum_dispatch;
 use std::fmt::Display;
 
-use inquire::validator::Validation;
+use inquire::{list_option::ListOption, validator::Validation};
 use serde::{Deserialize, Serialize};
 use tera::{Context, Tera};
 
@@ -121,7 +121,7 @@ impl Prompt for StringInput {
                 }
             };
 
-            prompt.validators.push(&validator);
+            prompt.validators.push(Box::new(validator));
             prompt.help_message = Some(&help_msg);
             prompt.prompt()?
         } else {
@@ -262,7 +262,7 @@ where
 
         let selections = inquire::MultiSelect::new(&prompt, self.choices)
             .with_default(&defaults)
-            .with_validator(&|a: _| {
+            .with_validator(|a: &[ListOption<&T>]| {
                 if a.is_empty() {
                     return Ok(Validation::Invalid("No item is selected".into()));
                 }
