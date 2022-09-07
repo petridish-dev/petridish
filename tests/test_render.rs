@@ -26,8 +26,10 @@ fn test_render() {
     assert!(output.path().join("awesome").exists());
     assert!(output.path().join("awesome").join("ABC.txt").exists());
     assert_eq!(
-        fs::read_to_string(output.path().join("awesome").join("ABC.txt")).unwrap(),
-        "JoJo\n"
+        fs::read_to_string(output.path().join("awesome").join("ABC.txt"))
+            .unwrap()
+            .trim_end(),
+        "JoJo"
     );
     assert!(output
         .path()
@@ -43,7 +45,8 @@ fn test_render() {
                 .join("my_dir")
                 .join("Bingo.txt")
         )
-        .unwrap(),
-        "Secret\n"
+        .unwrap()
+        .trim_end(),
+        "Secret"
     );
 }
