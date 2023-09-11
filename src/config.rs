@@ -150,7 +150,8 @@ impl Prompt for NumberInput {
 
         let value = match (self.min, self.max) {
             (Some(min), Some(max)) => inquire::CustomType::<f64>::new(&prompt)
-                .with_default((default, &|v| v.to_string()))
+                .with_default(default)
+                .with_default_value_formatter(&|v| v.to_string())
                 .with_error_message("Please type a valid number")
                 .with_help_message(&format!("range: {} <= value <= {}", min, max))
                 .with_parser(&|v| {
@@ -163,7 +164,8 @@ impl Prompt for NumberInput {
                 })
                 .prompt()?,
             (Some(min), None) => inquire::CustomType::<f64>::new(&prompt)
-                .with_default((default, &|v| v.to_string()))
+                .with_default(default)
+                .with_default_value_formatter(&|v| v.to_string())
                 .with_error_message("Please type a valid number")
                 .with_help_message(&format!("range: {} <= value", min))
                 .with_parser(&|v| {
@@ -176,7 +178,8 @@ impl Prompt for NumberInput {
                 })
                 .prompt()?,
             (None, Some(max)) => inquire::CustomType::<f64>::new(&prompt)
-                .with_default((default, &|v| v.to_string()))
+                .with_default(default)
+                .with_default_value_formatter(&|v| v.to_string())
                 .with_error_message("Please type a valid number")
                 .with_help_message(&format!("range: value <= {}", max))
                 .with_parser(&|v| {
@@ -189,7 +192,8 @@ impl Prompt for NumberInput {
                 })
                 .prompt()?,
             _ => inquire::CustomType::<f64>::new(&prompt)
-                .with_default((default, &|v| v.to_string()))
+                .with_default(default)
+                .with_default_value_formatter(&|v| v.to_string())
                 .with_error_message("Please type a valid number")
                 .prompt()?,
         };
