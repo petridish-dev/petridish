@@ -12,7 +12,8 @@ fn test_render() {
     context.insert("name", "JoJo");
     context.insert("inner_value", "Secret");
 
-    let output = tempdir::TempDir::new("test").unwrap();
+    let mut tmp_builder = tempfile::Builder::new();
+    let output = tmp_builder.prefix("test").tempdir().unwrap();
     let render = Render::new(
         "tests/templates",
         "{{ project }}",
