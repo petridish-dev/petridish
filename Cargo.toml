@@ -15,12 +15,12 @@ tera = "1"
 regex = "1"
 tempfile = "3.8"
 walkdir = "2.3"
-clap = { version = "3", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 inquire = "0.6.0"
 enum_dispatch = "0.3"
 thiserror = "1"
 anyhow = "1"
-dirs = "4"
+dirs = "5"
 git2 = { version = "0.18", features = ["vendored-openssl"] }
 termimad = "0.25"
 tabled = { version = "0.14", features = ["color"] }
