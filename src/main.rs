@@ -5,7 +5,7 @@ use std::{
 };
 
 use clap::{Parser, Subcommand};
-use crossterm::style::{Color, Stylize};
+use crossterm::style::Color;
 use inquire::error::InquireError;
 use petridish::{
     cache::Cache,
@@ -15,11 +15,16 @@ use petridish::{
     try_new_repo,
 };
 use tabled::{
-    object::{Columns, FirstRow, Segment},
-    Alignment, Format, Modify, Style, Table, Tabled,
+    settings::{
+        object::{Columns, FirstRow, Segment},
+    Alignment, Format, Modify, Style,},
+    Table,
+    Tabled,
 };
 use tera::Context;
+
 use termimad::*;
+use termimad::crossterm::style::Stylize;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -249,9 +254,9 @@ fn entry() -> petridish::error::Result<()> {
                 Table::new(templates)
                     .with(Style::blank())
                     .with(Modify::new(Segment::all()).with(Alignment::left()))
-                    .with(Modify::new(FirstRow).with(Format::new(|s| s.yellow().to_string())))
+                    .with(Modify::new(FirstRow).with(Format::content(|s| s.yellow().to_string())))
                     .with(
-                        Modify::new(Columns::single(1)).with(Format::new(|s| s.blue().to_string()))
+                        Modify::new(Columns::single(1)).with(Format::content(|s| s.blue().to_string()))
                     )
             );
         }
