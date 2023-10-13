@@ -23,6 +23,8 @@ pub struct PetridishConfig {
     pub project_var_name: String,
     pub short_description: Option<String>,
     pub long_description: Option<String>,
+    #[serde(default)]
+    pub exclude_render_paths: Vec<String>,
 }
 
 fn default_prompt_message_for_project_name() -> String {
@@ -40,6 +42,7 @@ impl Default for PetridishConfig {
             project_var_name: default_project_var_name(),
             short_description: None,
             long_description: None,
+            exclude_render_paths: vec![],
         }
     }
 }
@@ -611,6 +614,7 @@ mod tests {
         [petridish]
         project_prompt = "what's your project name?"
         project_var_name = "project"
+        exclude_render_paths = ["cliff.toml"]
         "#;
         let parsed = toml::from_str::<Config>(config).unwrap();
         assert_eq!(
@@ -621,6 +625,7 @@ mod tests {
                     project_var_name: "project".into(),
                     short_description: None,
                     long_description: None,
+                    exclude_render_paths: vec!["cliff.toml".into()],
                 },
                 prompts: vec![],
             }
@@ -637,9 +642,9 @@ mod tests {
                 petridish_config: PetridishConfig {
                     project_prompt: "project name?".into(),
                     project_var_name: "project_name".into(),
-
                     short_description: None,
                     long_description: None,
+                    exclude_render_paths: vec![],
                 },
                 prompts: vec![],
             }
@@ -692,6 +697,7 @@ mod tests {
                     project_var_name: "project".into(),
                     short_description: None,
                     long_description: None,
+                    exclude_render_paths: vec![],
                 },
                 prompts: vec![
                     PromptType::String(StringPrompt::Input(StringInput {

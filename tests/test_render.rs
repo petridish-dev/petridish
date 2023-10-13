@@ -20,6 +20,7 @@ fn test_render() {
         context,
         false,
         false,
+        vec![],
     );
     render.render().unwrap();
 

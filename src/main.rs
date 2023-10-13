@@ -4,8 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use ::crossterm::style::{Color, Stylize};
 use clap::{Parser, Subcommand};
-use crossterm::style::{Color, Stylize};
 use inquire::error::InquireError;
 use petridish::{
     cache::Cache,
@@ -222,6 +222,10 @@ fn entry() -> petridish::error::Result<()> {
                 prompt_context,
                 force,
                 skip,
+                petridish_config
+                    .petridish_config
+                    .exclude_render_paths
+                    .clone(),
             );
             render.render()?;
         }

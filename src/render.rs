@@ -13,6 +13,7 @@ pub struct Render {
     context: Context,
     overwrite_if_exists: bool,
     skip_if_exists: bool,
+    exclude_render_paths: Vec<String>,
 }
 
 impl Render {
@@ -23,7 +24,17 @@ impl Render {
         context: Context,
         overwrite_if_exists: bool,
         skip_if_exists: bool,
+        exclude_render_paths: Vec<String>,
     ) -> Self {
+        let mut tera = Tera::default();
+        let exclude_render_paths = exclude_render_paths
+            .into_iter()
+            .map(|p| {
+                tera.render_str(&format!("{}/{}", entry_dir_name, p), &context)
+                    .unwrap()
+            })
+            .collect();
+
         Self {
             template_path: template_path.into(),
             entry_dir_name: entry_dir_name.into(),
@@ -31,6 +42,7 @@ impl Render {
             context,
             overwrite_if_exists,
             skip_if_exists,
+            exclude_render_paths,
         }
     }
 }
@@ -47,8 +59,6 @@ impl Render {
             .filter_map(|e| e.ok())
             .filter(|p| p.file_type().is_file())
         {
-            let template_content = fs::read_to_string(entry.path()).unwrap();
-            let rendered_content = tera.render_str(&template_content, &self.context)?;
             let relative_path = entry
                 .path()
                 .display()
@@ -57,9 +67,22 @@ impl Render {
                 .trim_start_matches('/') // for unix
                 .trim_start_matches('\\') // for windows
                 .to_string();
+
+            let template_content = fs::read_to_string(entry.path()).unwrap();
             let relative_path = tera.render_str(&relative_path, &self.context)?;
-            let dest_path = self.output_path.join(relative_path);
-            file_contents.insert(dest_path, rendered_content);
+            let dest_path = self.output_path.join(&relative_path);
+
+            // check whether relative path is in exclude_render_paths
+            if self
+                .exclude_render_paths
+                .iter()
+                .any(|p| relative_path.eq(p))
+            {
+                file_contents.insert(dest_path, template_content);
+            } else {
+                let rendered_content = tera.render_str(&template_content, &self.context)?;
+                file_contents.insert(dest_path, rendered_content);
+            }
         }
 
         if !self.overwrite_if_exists && !self.skip_if_exists {
