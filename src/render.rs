@@ -1,4 +1,8 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{
+    collections::HashMap,
+    fs,
+    path::{Path, PathBuf},
+};
 
 use tera::Context;
 use tera::Tera;
@@ -57,7 +61,7 @@ impl Render {
         for entry in WalkDir::new(&template_entry_path)
             .into_iter()
             .filter_map(|e| e.ok())
-            .filter(|p| p.file_type().is_file())
+            .filter(|p| p.file_type().is_file() || p.file_type().is_symlink())
         {
             let relative_path = entry
                 .path()
@@ -68,9 +72,17 @@ impl Render {
                 .trim_start_matches('\\') // for windows
                 .to_string();
 
-            let template_content = fs::read_to_string(entry.path()).unwrap();
             let relative_path = tera.render_str(&relative_path, &self.context)?;
             let dest_path = self.output_path.join(&relative_path);
+            if entry.path_is_symlink() {
+                if !dest_path.parent().unwrap().exists() {
+                    fs::create_dir_all(dest_path.parent().unwrap()).unwrap();
+                }
+                symlink(&fs::read_link(entry.path()).unwrap(), dest_path);
+                continue;
+            }
+
+            let template_content = fs::read_to_string(entry.path()).unwrap();
 
             // check whether relative path is in exclude_render_paths
             if self
@@ -107,4 +119,14 @@ impl Render {
 
         Ok(())
     }
+}
+
+#[cfg(windows)]
+fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) {
+    std::os::windows::fs::symlink_file(original, link).unwrap()
+}
+
+#[cfg(unix)]
+fn symlink<P: AsRef<Path>, Q: AsRef<Path>>(original: P, link: Q) {
+    std::os::unix::fs::symlink(original, link).unwrap()
 }
