@@ -58,7 +58,7 @@ impl Render {
 
         // first render templates into file_contents
         let template_entry_path = self.template_path.join(&self.entry_dir_name);
-        for entry in WalkDir::new(&template_entry_path)
+        for entry in WalkDir::new(template_entry_path)
             .into_iter()
             .filter_map(|e| e.ok())
             .filter(|p| p.file_type().is_file() || p.file_type().is_symlink())
