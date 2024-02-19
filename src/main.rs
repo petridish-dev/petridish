@@ -284,7 +284,7 @@ fn main() -> anyhow::Result<()> {
             return Ok(());
         }
 
-        return Err(e)?;
+        Err(e)?
     }
 
     Ok(())
